@@ -1,2 +1,8 @@
 /.specstory
 /.venv
+/venv
+*.md
+!README.md
+!PROJECT_README.md
+requirements.txt
+utils/__pycache__/

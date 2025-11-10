@@ -1,11 +1,337 @@
-import random
-import sys
-from typing import List, Tuple, Optional
-from pathlib import Path
-import time
+"""
+Las Vegas Algorithm for ECDLP
 
-# Set higher recursion depth for deep computations if needed
-sys.setrecursionlimit(2000)
+A probabilistic algorithm that uses summation polynomials and linear algebra
+to solve the Elliptic Curve Discrete Logarithm Problem. The algorithm:
+1. Generates random points r*G and -s*Q
+2. Builds a matrix M from monomial evaluations
+3. Finds kernel basis to get linear relations
+4. Solves for d such that Q = d*G
+
+This is a Monte Carlo/Las Vegas approach that may succeed after several attempts.
+
+Time Complexity: O(polynomial in log p) per attempt (probabilistic)
+Space Complexity: O(n'^2) where n' is parameter
+"""
+
+import sys
+import time
+import random
+from pathlib import Path
+from typing import List, Tuple, Optional
+
+# Add parent directory to path for utils import
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils import EllipticCurve, Point, load_input, mod_inv
+
+
+class LinearAlgebra:
+    """Linear algebra operations over finite field F_p."""
+    
+    @staticmethod
+    def rref(matrix: List[List[int]], p: int) -> Tuple[List[List[int]], List[Tuple[int, int]]]:
+        """
+        Compute Row-Reduced Echelon Form over F_p.
+        
+        Returns:
+            (rref_matrix, pivot_positions)
+        """
+        M = [row[:] for row in matrix]  # Copy
+        rows = len(M)
+        cols = len(M[0]) if rows > 0 else 0
+        
+        pivots = []
+        r = 0
+        
+        for c in range(cols):
+            if r >= rows:
+                break
+            
+            # Find pivot
+            pivot_row = -1
+            for i in range(r, rows):
+                if M[i][c] % p != 0:
+                    pivot_row = i
+                    break
+            
+            if pivot_row == -1:
+                continue
+            
+            # Swap rows
+            M[r], M[pivot_row] = M[pivot_row], M[r]
+            pivots.append((r, c))
+            
+            # Normalize pivot
+            pivot_inv = mod_inv(M[r][c], p)
+            for j in range(cols):
+                M[r][j] = (M[r][j] * pivot_inv) % p
+            
+            # Eliminate column
+            for i in range(rows):
+                if i != r and M[i][c] != 0:
+                    factor = M[i][c]
+                    for j in range(cols):
+                        M[i][j] = (M[i][j] - factor * M[r][j]) % p
+            
+            r += 1
+        
+        return M, pivots
+    
+    @staticmethod
+    def kernel_basis(matrix: List[List[int]], p: int) -> List[List[int]]:
+        """
+        Find basis for left kernel of matrix over F_p.
+        
+        Returns vectors v such that v * M = 0.
+        """
+        if not matrix:
+            return []
+        
+        rows = len(matrix)
+        cols = len(matrix[0])
+        
+        # Transpose matrix
+        M_t = [[matrix[r][c] for r in range(rows)] for c in range(cols)]
+        
+        # Compute RREF
+        rref, pivots = LinearAlgebra.rref(M_t, p)
+        
+        # Find free variables
+        pivot_cols = {pivot[1] for pivot in pivots}
+        free_cols = [c for c in range(rows) if c not in pivot_cols]
+        
+        if not free_cols:
+            return []
+        
+        # Build kernel basis
+        pivot_map = {pivot[1]: pivot[0] for pivot in pivots}
+        basis = []
+        
+        for free_col in free_cols:
+            vec = [0] * rows
+            vec[free_col] = 1
+            
+            for pivot_col in pivot_cols:
+                row = pivot_map[pivot_col]
+                if free_col < len(rref[row]):
+                    vec[pivot_col] = (-rref[row][free_col]) % p
+            
+            basis.append(vec)
+        
+        return basis
+
+
+def build_monomials(P: Point, n_prime: int, p: int) -> List[int]:
+    """
+    Build monomial vector for point P.
+    
+    For n_prime=2: Uses degree-2 monomials [x^2, y^2, 1, xy, x, y]
+    For n_prime=3: Uses degree-3 monomials [x^3, y^3, 1, x^2y, x^2, y^2x, y^2, x, y, xy]
+    """
+    if P is None or P[0] is None or P[1] is None:
+        raise ValueError("Point cannot be at infinity for monomial construction")
+    
+    x, y = P[0] % p, P[1] % p
+    
+    if n_prime == 2:
+        x2 = (x * x) % p
+        y2 = (y * y) % p
+        xy = (x * y) % p
+        return [x2, y2, 1, xy, x, y]
+    elif n_prime == 3:
+        x2 = (x * x) % p
+        y2 = (y * y) % p
+        x3 = (x * x2) % p
+        y3 = (y * y2) % p
+        x2y = (x2 * y) % p
+        y2x = (y2 * x) % p
+        xy = (x * y) % p
+        return [x3, y3, 1, x2y, x2, y2x, y2, x, y, xy]
+    else:
+        raise ValueError(f"n_prime={n_prime} not supported (use 2 or 3)")
+
+
+def find_sparse_vector(basis: List[List[int]], target_zeros: int, p: int) -> Optional[List[int]]:
+    """
+    Heuristic to find a vector with approximately 'target_zeros' zero entries.
+    
+    This implements a simplified version of the algorithm from the paper.
+    """
+    if not basis:
+        return None
+    
+    dim = len(basis)
+    vec_len = len(basis[0])
+    
+    # Try different linear combinations
+    for attempt in range(100):
+        # Random coefficients
+        coeffs = [random.randrange(p) for _ in range(dim)]
+        
+        # Compute linear combination
+        result = [0] * vec_len
+        for i, coeff in enumerate(coeffs):
+            if coeff != 0:
+                for j in range(vec_len):
+                    result[j] = (result[j] + coeff * basis[i][j]) % p
+        
+        # Check if we have enough zeros
+        zero_count = sum(1 for x in result if x == 0)
+        if zero_count >= target_zeros:
+            return result
+    
+    return None
+
+
+def las_vegas_ecdlp(curve: EllipticCurve, G: Point, Q: Point, n: int, 
+                    n_prime: int = 2, max_attempts: int = 50) -> Tuple[Optional[int], int]:
+    """
+    Solve ECDLP using Las Vegas algorithm.
+    
+    Args:
+        curve: The elliptic curve
+        G: Base point (generator)
+        Q: Target point (Q = d*G for unknown d)
+        n: Order of base point G
+        n_prime: Algorithm parameter (2 or 3)
+        max_attempts: Maximum number of attempts
+    
+    Returns:
+        (d, attempts) where d is the discrete log, or (None, attempts)
+    """
+    l = 3 * n_prime
+    
+    for attempt in range(1, max_attempts + 1):
+        try:
+            # Build matrix M from random point evaluations
+            M = []
+            I_list = []  # Multipliers for G
+            J_list = []  # Multipliers for Q
+            
+            # Generate (3n'-1) rows from r*G
+            for _ in range(3 * n_prime - 1):
+                r = random.randrange(1, n)
+                P = curve.scalar_multiply(r, G)
+                if P is not None:
+                    M.append(build_monomials(P, n_prime, curve.p))
+                    I_list.append(r)
+            
+            # Generate (l+1) rows from -r*Q
+            for _ in range(l + 1):
+                r = random.randrange(1, n)
+                P = curve.scalar_multiply(-r, Q)
+                if P is not None:
+                    M.append(build_monomials(P, n_prime, curve.p))
+                    J_list.append(r)
+            
+            # Compute kernel basis
+            kernel = LinearAlgebra.kernel_basis(M, curve.p)
+            
+            if not kernel:
+                continue
+            
+            # Find sparse vector
+            v = find_sparse_vector(kernel, l, curve.p)
+            
+            if v is None:
+                continue
+            
+            # Extract solution
+            A = 0
+            B = 0
+            
+            for i in range(len(I_list)):
+                if v[i] != 0:
+                    A = (A + I_list[i]) % n
+            
+            for i in range(len(J_list)):
+                v_idx = len(I_list) + i
+                if v_idx < len(v) and v[v_idx] != 0:
+                    B = (B + J_list[i]) % n
+            
+            # Compute d = A * B^(-1) mod n
+            if B != 0:
+                B_inv = mod_inv(B, n)
+                d = (A * B_inv) % n
+                
+                # Verify
+                if curve.scalar_multiply(d, G) == Q:
+                    return d, attempt
+        
+        except (ValueError, ZeroDivisionError):
+            continue
+    
+    return None, max_attempts
+
+
+def main():
+    """Main entry point for Las Vegas ECDLP solver."""
+    script_dir = Path(__file__).parent
+    
+    if len(sys.argv) > 1:
+        input_path = Path(sys.argv[1])
+    else:
+        input_path = script_dir.parent / 'input' / 'testcase_1.txt'
+    
+    if not input_path.exists():
+        print(f"Error: Input file not found: {input_path}", file=sys.stderr)
+        sys.exit(1)
+    
+    try:
+        p, a, b, G, n, Q = load_input(input_path)
+        curve = EllipticCurve(a, b, p)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    if not curve.is_on_curve(G):
+        print("Error: Base point G is not on the curve", file=sys.stderr)
+        sys.exit(1)
+    
+    if not curve.is_on_curve(Q):
+        print("Error: Target point Q is not on the curve", file=sys.stderr)
+        sys.exit(1)
+    
+    # Verify order
+    nG = curve.scalar_multiply(n, G)
+    if nG is not None:
+        print("Warning: n*G ≠ O; provided n may not be the exact order of G")
+    
+    n_prime = 2
+    max_attempts = 100
+    
+    print(f"Solving ECDLP using Las Vegas Algorithm...")
+    print(f"Curve: y^2 = x^3 + {a}x + {b} (mod {p})")
+    print(f"G = ({G[0]}, {G[1]}), Q = ({Q[0]}, {Q[1]}), n = {n}")
+    print(f"Parameters: n'={n_prime}, l={3*n_prime}")
+    
+    start_time = time.perf_counter()
+    d, attempts = las_vegas_ecdlp(curve, G, Q, n, n_prime, max_attempts)
+    elapsed = time.perf_counter() - start_time
+    
+    if d is not None:
+        Q_verify = curve.scalar_multiply(d, G)
+        verified = (Q_verify == Q)
+        
+        print(f"\n{'='*50}")
+        print(f"Solution: d = {d}")
+        print(f"Attempts: {attempts}/{max_attempts}")
+        print(f"Time: {elapsed:.6f} seconds")
+        print(f"Verification: {'PASSED' if verified else 'FAILED'}")
+        print(f"{'='*50}")
+        
+        if not verified:
+            sys.exit(1)
+    else:
+        print(f"\nNo solution found after {max_attempts} attempts")
+        print(f"Time: {elapsed:.6f} seconds")
+        print("Note: This is a probabilistic algorithm. Try increasing max_attempts or adjusting n_prime.")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
 
 # ==============================================================================
 # 
