@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""
+ECC ECDLP Test Case Generator
+
+Usage: python3 generate_test_cases.py <k>
+where k = bit length (10-40)
+
+Generates 5 diverse test cases for the specified bit length.
+"""
+
+import sys
+import random
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from utils import EllipticCurve
+
+def is_prime(n):
+    """Miller-Rabin primality test."""
+    if n < 2:
+        return False
+    if n == 2 or n == 3:
+        return True
+    if n % 2 == 0:
+        return False
+    
+    r, d = 0, n - 1
+    while d % 2 == 0:
+        r += 1
+        d //= 2
+    
+    for _ in range(5):
+        a = random.randrange(2, n - 1)
+        x = pow(a, d, n)
+        
+        if x == 1 or x == n - 1:
+            continue
+        
+        for _ in range(r - 1):
+            x = pow(x, 2, n)
+            if x == n - 1:
+                break
+        else:
+            return False
+    return True
+
+def find_random_prime(bits, seed_offset=0):
+    """Find a random prime with specified bit length."""
+    random.seed(bits * 1000 + seed_offset)
+    
+    min_val = 2 ** (bits - 1)
+    max_val = 2 ** bits - 1
+    
+    for _ in range(10000):
+        candidate = random.randrange(min_val, max_val) | 1
+        if is_prime(candidate):
+            return candidate
+    
+    candidate = min_val + 1
+    while candidate < max_val:
+        if is_prime(candidate):
+            return candidate
+        candidate += 2
+    
+    return None
+
+def generate_curve_params(p, case_num):
+    """Generate varied curve parameters."""
+    random.seed(p + case_num)
+    
+    # Use y^2 = x^3 + ax + b with small a, b
+    # Keep it simple for better compatibility
+    curves = [
+        (0, 1),   # y^2 = x^3 + 1
+        (0, 7),   # y^2 = x^3 + 7 (secp256k1-like)
+        (1, 1),   # y^2 = x^3 + x + 1
+        (2, 3),   # y^2 = x^3 + 2x + 3
+        (1, 0),   # y^2 = x^3 + x
+    ]
+    
+    a, b = curves[(case_num - 1) % len(curves)]
+    
+    # Ensure valid discriminant
+    discriminant = (4 * a**3 + 27 * b**2) % p
+    if discriminant == 0:
+        a, b = (0, 7)  # Fallback
+    
+    return a, b
+
+def tonelli_shanks(n, p):
+    """Compute square root of n modulo prime p using Tonelli-Shanks algorithm."""
+    if pow(n, (p - 1) // 2, p) != 1:
+        return None  # n is not a quadratic residue
+    
+    # Find Q and S such that p - 1 = Q * 2^S
+    Q, S = p - 1, 0
+    while Q % 2 == 0:
+        Q //= 2
+        S += 1
+    
+    # Find a quadratic non-residue z
+    z = 2
+    while pow(z, (p - 1) // 2, p) != p - 1:
+        z += 1
+    
+    M = S
+    c = pow(z, Q, p)
+    t = pow(n, Q, p)
+    R = pow(n, (Q + 1) // 2, p)
+    
+    while True:
+        if t == 0:
+            return 0
+        if t == 1:
+            return R
+        
+        # Find the least i such that t^(2^i) = 1
+        i = 1
+        temp = (t * t) % p
+        while temp != 1 and i < M:
+            temp = (temp * temp) % p
+            i += 1
+        
+        b = pow(c, 1 << (M - i - 1), p)
+        M = i
+        c = (b * b) % p
+        t = (t * c) % p
+        R = (R * b) % p
+
+def find_generator_point(curve, p, seed_val=0):
+    """Find a valid point on the curve using Tonelli-Shanks for sqrt."""
+    random.seed(p + seed_val * 1000)
+    
+    # Try more attempts for larger primes
+    max_tries = min(10000, p)
+    
+    for _ in range(max_tries):
+        x = random.randint(0, p - 1)
+        y_sq = (x**3 + curve.a * x + curve.b) % p
+        
+        # Use Tonelli-Shanks to find square root
+        y = tonelli_shanks(y_sq, p)
+        if y is not None:
+            return (x, y)
+    
+    return None
+
+def generate_test_cases_for_bits(k):
+    """Generate 5 test cases for k-bit ECDLP problems."""
+    if k < 10 or k > 50:
+        print(f"Error: Bit length must be between 10 and 50")
+        return 0
+    
+    print(f"\nGenerating 5 test cases for {k}-bit ECDLP...")
+    print("=" * 70)
+    
+    success_count = 0
+    
+    for case_num in range(1, 6):
+        p = find_random_prime(k, seed_offset=case_num)
+        if not p:
+            print(f"  ✗ Case {case_num}: No prime found")
+            continue
+        
+        a, b = generate_curve_params(p, case_num)
+        curve = EllipticCurve(a, b, p)
+        
+        G = find_generator_point(curve, p, seed_val=case_num)
+        if not G:
+            print(f"  ✗ Case {case_num}: No generator found")
+            continue
+        
+        # Use small discrete log for solvability
+        # For smaller bit sizes, keep secrets small for testing
+        # For larger bit sizes (>20), use moderately sized secrets to test algorithms properly
+        if k <= 18:
+            # Small secrets for quick testing of all 5 algorithms
+            d = 50 + case_num * 50 + k * 5
+            max_d = min(5000, 2**(k-3))
+        elif k <= 25:
+            # Medium secrets - test BSGS properly
+            d = 1000 + case_num * 500 + k * 100
+            max_d = min(50000, 2**(k-5))
+        else:
+            # Larger secrets for realistic testing (but still solvable)
+            d = 5000 + case_num * 2000 + k * 500
+            max_d = min(500000, 2**(k-8))
+        
+        d = d % max_d
+        if d < 10:
+            d += 10
+        
+        Q = curve.scalar_multiply(d, G)
+        
+        # Use p+1 as order approximation
+        n = p + 1
+        
+        test_dir = Path(__file__).parent / 'test_cases' / f'{k:02d}bit'
+        test_dir.mkdir(parents=True, exist_ok=True)
+        
+        filename = test_dir / f'case_{case_num}.txt'
+        with open(filename, 'w') as f:
+            f.write(f'{p}\n')
+            f.write(f'{a} {b}\n')
+            f.write(f'{G[0]} {G[1]}\n')
+            f.write(f'{n}\n')
+            f.write(f'{Q[0]} {Q[1]}\n')
+        
+        # Also save the answer (private key) for bonus implementations
+        answer_file = test_dir / f'answer_{case_num}.txt'
+        with open(answer_file, 'w') as f:
+            f.write(f'{d}\n')
+        
+        print(f"  ✓ Case {case_num}: p={p} ({k} bits), a={a}, b={b}, d={d}")
+        success_count += 1
+    
+    print("=" * 70)
+    print(f"✓ Generated {success_count}/5 test cases")
+    return success_count
+
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: python3 generate_test_cases.py <k>")
+        print("where k = bit length (10-40)")
+        sys.exit(1)
+    
+    try:
+        k = int(sys.argv[1])
+    except ValueError:
+        print(f"Error: Argument must be an integer")
+        sys.exit(1)
+    
+    if k < 10 or k > 50:
+        print(f"Error: Bit length must be between 10 and 50")
+        sys.exit(1)
+    
+    print("=" * 70)
+    print(f"ECC ECDLP Test Case Generator")
+    print("=" * 70)
+    print(f"Bit length: {k}")
+    
+    count = generate_test_cases_for_bits(k)
+    
+    if count > 0:
+        print(f"\n✓ Success! Generated {count} test cases")
+        print(f"  Location: test_cases/{k:02d}bit/")
+    else:
+        print("\n✗ Failed to generate test cases")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

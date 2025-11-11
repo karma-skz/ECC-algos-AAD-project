@@ -39,7 +39,13 @@ class KeyLeakage:
         Returns:
             (leaked_value, shift_amount)
         """
-        shift = total_bits - num_bits
+        # Handle edge case where secret is smaller than expected
+        actual_bits = d.bit_length()
+        if actual_bits < num_bits:
+            # If secret is too small, just return the secret itself
+            return d, 0
+        
+        shift = max(0, total_bits - num_bits)
         leaked = d >> shift
         return leaked, shift
     

@@ -1,14 +1,13 @@
 """
-Brute Force with Partial Key Leakage - BONUS Implementation
+Brute Force with Partial Key Leakage - BONUS Implementation (C++ Optimized)
 
 Demonstrates how known bits or bounded intervals drastically reduce search space.
-Leak types supported:
-- Known LSB/MSB bits: Search only among consistent candidates
-- Bounded interval: Search within the given range
+Uses C++ backend for fast scalar multiplication.
 """
 
 import sys
 import time
+import ctypes
 from pathlib import Path
 from typing import Optional
 
@@ -18,6 +17,38 @@ from utils import (EllipticCurve, Point, load_input, KeyLeakage,
                    candidates_from_lsb_leak, candidates_from_msb_leak,
                    format_leak_info, calculate_speedup, calculate_search_reduction)
 
+# Load C++ library
+USE_CPP = False
+try:
+    lib_path = Path(__file__).parent / 'ecc_fast.so'
+    if lib_path.exists():
+        ecc_lib = ctypes.CDLL(str(lib_path))
+        ecc_lib.scalar_mult.argtypes = [ctypes.c_int64]*6 + [ctypes.POINTER(ctypes.c_int64)]*2
+        ecc_lib.scalar_mult.restype = ctypes.c_int
+        ecc_lib.point_add.argtypes = [ctypes.c_int64]*6 + [ctypes.POINTER(ctypes.c_int64)]*2
+        ecc_lib.point_add.restype = ctypes.c_int
+        USE_CPP = True
+        print("✓ Using C++ optimization for bonus")
+except: pass
+
+def fast_scalar_mult(k, G, curve):
+    if not USE_CPP or G is None: return curve.scalar_multiply(k, G)
+    rx, ry = ctypes.c_int64(), ctypes.c_int64()
+    valid = ecc_lib.scalar_mult(ctypes.c_int64(k), ctypes.c_int64(G[0]), ctypes.c_int64(G[1]),
+                                  ctypes.c_int64(curve.a), ctypes.c_int64(curve.b), ctypes.c_int64(curve.p),
+                                  ctypes.byref(rx), ctypes.byref(ry))
+    return None if valid == 0 else (rx.value, ry.value)
+
+def fast_point_add(P, Q, curve):
+    if not USE_CPP or P is None: return curve.add(P, Q)
+    if Q is None: return P
+    rx, ry = ctypes.c_int64(), ctypes.c_int64()
+    valid = ecc_lib.point_add(ctypes.c_int64(P[0]), ctypes.c_int64(P[1]),
+                               ctypes.c_int64(Q[0]), ctypes.c_int64(Q[1]),
+                               ctypes.c_int64(curve.a), ctypes.c_int64(curve.p),
+                               ctypes.byref(rx), ctypes.byref(ry))
+    return None if valid == 0 else (rx.value, ry.value)
+
 
 def brute_force_with_lsb_leak(curve: EllipticCurve, G: Point, Q: Point, n: int,
                                leaked_lsb: int, mask: int) -> Optional[int]:
@@ -26,14 +57,14 @@ def brute_force_with_lsb_leak(curve: EllipticCurve, G: Point, Q: Point, n: int,
     Only checks candidates consistent with leaked LSB.
     """
     step = mask + 1
-    R = curve.scalar_multiply(leaked_lsb, G)
-    step_G = curve.scalar_multiply(step, G)
+    R = fast_scalar_mult(leaked_lsb, G, curve)
+    step_G = fast_scalar_mult(step, G, curve)
     
     k = leaked_lsb
     while k < n:
         if R == Q:
             return k
-        R = curve.add(R, step_G)
+        R = fast_point_add(R, step_G, curve)
         k += step
     
     return None
@@ -44,12 +75,12 @@ def brute_force_with_interval(curve: EllipticCurve, G: Point, Q: Point, n: int,
     """
     Brute force search within bounded interval.
     """
-    R = curve.scalar_multiply(lower, G)
+    R = fast_scalar_mult(lower, G, curve)
     
     for k in range(lower, upper + 1):
         if R == Q:
             return k
-        R = curve.add(R, G)
+        R = fast_point_add(R, G, curve)
     
     return None
 

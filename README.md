@@ -2,6 +2,14 @@
 
 Implementations of 5 algorithms for solving the Elliptic Curve Discrete Logarithm Problem.
 
+## Quick Start
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python run_comparisons.py # runs from 10 to 30 bit length
+```
+
 ## Algorithms
 
 1. **Brute Force** - O(n)
@@ -14,12 +22,11 @@ Implementations of 5 algorithms for solving the Elliptic Curve Discrete Logarith
 
 ```bash
 # Run individual algorithm
-python3 BruteForce/main.py input/testcase_1.txt
-python3 BabyStep/main.py input/testcase_1.txt
-python3 PohligHellman/main.py input/testcase_1.txt
+python3 <algoname>/main_optimized.py <testcase_path>
 
 # Compare all algorithms
-python3 compare_algorithms.py # bruteforce + bsgs + pohlig (works properly till now)
+python3 run_comparisons.py <start_bit_size> <end_bit_size> # default : 10 18
+# It also generates graphs in graphs/ directory
 ```
 
 ## Input Format
@@ -39,13 +46,10 @@ Output: Secret `d` where Q = d·G
 Side-channel attack simulations showing how leaked information breaks ECDLP:
 
 ```bash
-# Deterministic algorithms (work well)
-python3 BruteForce/bonus.py         # LSB leaks: 6,000x speedup
-python3 BabyStep/bonus.py           # MSB leaks: 200x speedup
-python3 PohligHellman/bonus.py      # Residue leaks
+python3 <algoname>/bonus.py <testcase_path>
 
-# Quick comparison
-python3 compare_bonus_quick.py
+python3 run_bonus_comparison.py 
+python3 run_bonus_detailed.py
 ```
 
 **Bonus Results:**
@@ -53,50 +57,9 @@ python3 compare_bonus_quick.py
 - BSGS: 16-bit MSB leak → Reduces √n parameter dramatically
 - Pohlig-Hellman: Residue leaks eliminate CRT subproblems
 
-## Project Structure
+## NOTE :
 
+In run_comparisons.py, uncomment : 
+```python
+ALGORITHMS = ['BruteForce', 'BabyStep', 'PohligHellman','PollardRho', 'LasVegas']
 ```
-utils/                  # Shared utilities
-  └── bonus_utils.py    # Leak simulation
-BruteForce/
-  ├── main.py           # Standard
-  └── bonus.py          # With LSB leaks
-BabyStep/
-  ├── main.py
-  └── bonus.py          # With MSB leaks
-PohligHellman/
-  ├── main.py
-  └── bonus.py          # With residues
-PollardRho/main.py
-LasVegas/main.py
-compare_algorithms.py
-compare_bonus_quick.py
-```
-
-## Status
-
-**Done:**
-- ✅ All 5 core algorithms working
-- ✅ Pohlig-Hellman with CRT
-- ✅ 5 test cases (40-bit primes)
-- ✅ Bonus for BruteForce, BSGS, Pohlig-Hellman
-- ✅ Comparison scripts
-
-**Not Practical:**
-- ⚠️ Pollard Rho bonus (probabilistic, timeouts)
-- ⚠️ Las Vegas bonus (unreliable, slow)
-
-These are implemented but not usable for demos.
-
-## Performance
-
-| Algorithm | Complexity | Best For |
-|-----------|-----------|----------|
-| Brute Force | O(n) | n < 10⁶ |
-| BSGS | O(√n) | n < 10¹² |
-| Pohlig-Hellman | O(∑√qᵢ) | Smooth n |
-
-**With Leaks:**
-- Brute + 16-bit LSB: **6,000x faster**
-- BSGS + 16-bit MSB: **200x faster**
-- Pohlig + residues: **1.1-5x faster**

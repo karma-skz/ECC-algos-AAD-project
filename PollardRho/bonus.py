@@ -1,14 +1,13 @@
 """
-Pollard's Rho with Partial Key Leakage - BONUS Implementation
+Pollard's Rho with Partial Key Leakage - BONUS Implementation (C++ Optimized)
 
 Demonstrates how bit leaks and intervals restrict the random walk.
-Leak types supported:
-- LSB/MSB leaks: Restrict random walk starting points and detection
-- Bounded intervals: Start walk in restricted range
+Uses C++ backend for fast operations.
 """
 
 import sys
 import time
+import ctypes
 from pathlib import Path
 from typing import Optional
 
@@ -17,6 +16,38 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils import (EllipticCurve, Point, load_input, KeyLeakage,
                    candidates_from_lsb_leak, candidates_from_msb_leak,
                    format_leak_info, calculate_speedup, calculate_search_reduction)
+
+# Load C++ library
+USE_CPP = False
+try:
+    lib_path = Path(__file__).parent / 'ecc_fast.so'
+    if lib_path.exists():
+        ecc_lib = ctypes.CDLL(str(lib_path))
+        ecc_lib.scalar_mult.argtypes = [ctypes.c_int64]*6 + [ctypes.POINTER(ctypes.c_int64)]*2
+        ecc_lib.scalar_mult.restype = ctypes.c_int
+        ecc_lib.point_add.argtypes = [ctypes.c_int64]*8 + [ctypes.POINTER(ctypes.c_int64)]*2
+        ecc_lib.point_add.restype = ctypes.c_int
+        USE_CPP = True
+        print("✓ Using C++ optimization for bonus")
+except: pass
+
+def fast_scalar_mult(k, G, curve):
+    if not USE_CPP or G is None: return curve.scalar_multiply(k, G)
+    rx, ry = ctypes.c_int64(), ctypes.c_int64()
+    valid = ecc_lib.scalar_mult(ctypes.c_int64(k), ctypes.c_int64(G[0]), ctypes.c_int64(G[1]),
+                                  ctypes.c_int64(curve.a), ctypes.c_int64(curve.b), ctypes.c_int64(curve.p),
+                                  ctypes.byref(rx), ctypes.byref(ry))
+    return None if valid == 0 else (rx.value, ry.value)
+
+def fast_point_add(P, Q, curve):
+    if not USE_CPP or P is None or Q is None: return curve.add(P, Q)
+    rx, ry = ctypes.c_int64(), ctypes.c_int64()
+    valid = ecc_lib.point_add(ctypes.c_int64(P[0]), ctypes.c_int64(P[1]),
+                               ctypes.c_int64(Q[0]), ctypes.c_int64(Q[1]),
+                               ctypes.c_int64(curve.a), ctypes.c_int64(curve.b), ctypes.c_int64(curve.p),
+                               ctypes.c_int64(curve.n if hasattr(curve, 'n') else 0),
+                               ctypes.byref(rx), ctypes.byref(ry))
+    return None if valid == 0 else (rx.value, ry.value)
 
 
 def pollard_rho_with_interval(curve: EllipticCurve, G: Point, Q: Point, n: int,
@@ -30,7 +61,7 @@ def pollard_rho_with_interval(curve: EllipticCurve, G: Point, Q: Point, n: int,
     
     # Initialize tortoise and hare
     a_t, b_t = start, 0
-    R_t = curve.scalar_multiply(a_t, G)
+    R_t = fast_scalar_mult(a_t, G, curve)
     
     a_h, b_h = start, 0
     R_h = R_t
@@ -42,17 +73,17 @@ def pollard_rho_with_interval(curve: EllipticCurve, G: Point, Q: Point, n: int,
         
         if partition == 0:
             # Add Q
-            R_new = curve.add(R, Q)
+            R_new = fast_point_add(R, Q, curve)
             a_new = a
             b_new = (b + 1) % n
         elif partition == 1:
             # Double
-            R_new = curve.add(R, R)
+            R_new = fast_point_add(R, R, curve)
             a_new = (2 * a) % n
             b_new = (2 * b) % n
         else:
             # Add G
-            R_new = curve.add(R, G)
+            R_new = fast_point_add(R, G, curve)
             a_new = (a + 1) % n
             b_new = b
         
@@ -80,7 +111,7 @@ def pollard_rho_with_interval(curve: EllipticCurve, G: Point, Q: Point, n: int,
                 # Restart with different initial point
                 a_t = lower + (i % (upper - lower + 1))
                 b_t = 0
-                R_t = curve.scalar_multiply(a_t, G)
+                R_t = fast_scalar_mult(a_t, G, curve)
                 a_h, b_h, R_h = a_t, b_t, R_t
                 continue
             
@@ -92,7 +123,7 @@ def pollard_rho_with_interval(curve: EllipticCurve, G: Point, Q: Point, n: int,
                 
                 # Verify in interval
                 if lower <= d <= upper:
-                    test = curve.scalar_multiply(d, G)
+                    test = fast_scalar_mult(d, G, curve)
                     if test == Q:
                         return d
             except:
@@ -117,7 +148,7 @@ def pollard_rho_with_lsb_leak(curve: EllipticCurve, G: Point, Q: Point, n: int,
         candidate = (leaked_value + offset) % n
         
         # Quick check
-        test = curve.scalar_multiply(candidate, G)
+        test = fast_scalar_mult(candidate, G, curve)
         if test == Q:
             return candidate
     
