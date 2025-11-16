@@ -105,7 +105,7 @@ def main():
     m = int(math.isqrt(n)) + 1
     print(f"Solving ECDLP using Baby-Step Giant-Step...")
     print(f"Curve: y^2 = x^3 + {a}x + {b} (mod {p})")
-    print(f"G = ({G[0]}, {G[1]}), Q = ({Q[0]}, {Q[1]}), n = {n}")
+    print(f"G = ({G[0]}, {G[1]}), Q = ({Q[0]}, {Q[1]}), n = {n}") # type: ignore
     print(f"m = ceil(sqrt(n)) = {m}")
     
     start_time = time.perf_counter()

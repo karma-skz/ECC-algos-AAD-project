@@ -244,7 +244,7 @@ def main():
     
     print(f"Solving ECDLP using Pollard Rho...")
     print(f"Curve: y^2 = x^3 + {a}x + {b} (mod {p})")
-    print(f"G = ({G[0]}, {G[1]}), Q = ({Q[0]}, {Q[1]}), n = {n}")
+    print(f"G = ({G[0]}, {G[1]}), Q = ({Q[0]}, {Q[1]}), n = {n}") # type: ignore
     print(f"Partitions: {partition_m}, Max steps/attempt: {max_steps}")
     
     start_time = time.perf_counter()

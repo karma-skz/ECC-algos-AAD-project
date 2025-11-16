@@ -68,7 +68,7 @@ def pollard_rho_with_interval(curve: EllipticCurve, G: Point, Q: Point, n: int,
     
     def step(R: Point, a: int, b: int) -> tuple:
         """Single iteration step with interval awareness."""
-        x = R.x if R != Point.INFINITY else 0
+        x = R.x if R != Point.INFINITY else 0 # type: ignore
         partition = x % 3
         
         if partition == 0:
@@ -116,9 +116,9 @@ def pollard_rho_with_interval(curve: EllipticCurve, G: Point, Q: Point, n: int,
                 continue
             
             # Solve: s*d ≡ r (mod n)
-            from utils import mod_inverse
+            from utils import mod_inv
             try:
-                s_inv = mod_inverse(s, n)
+                s_inv = mod_inv(s, n)
                 d = (r * s_inv) % n
                 
                 # Verify in interval

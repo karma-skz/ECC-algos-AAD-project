@@ -11,3 +11,4 @@ bonus_logs/
 graphs/
 *.so 
 vevn/
+*.DS_Store

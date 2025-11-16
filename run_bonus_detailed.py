@@ -15,6 +15,7 @@ import subprocess
 import sys
 import time
 import json
+import re
 from pathlib import Path
 from datetime import datetime
 
@@ -162,19 +163,31 @@ def main():
             f.write(f"{bits}-BIT TEST CASES\n")
             f.write('='*100 + "\n\n")
             
-            for case_num in range(1, 6):
-                test_file = Path(f'test_cases/{bits:02d}bit/case_{case_num}.txt')
-                if not test_file.exists():
-                    continue
+            # Discover available cases
+            cases_dir = Path('test_cases') / f'{bits:02d}bit'
+            if not cases_dir.exists():
+                continue
+            def case_key(p: Path):
+                m = re.search(r'case_(\d+)\.txt$', p.name)
+                return int(m.group(1)) if m else 0
+            case_files = sorted(cases_dir.glob('case_*.txt'), key=case_key)
+
+            for test_file in case_files:
+                m = re.search(r'case_(\d+)\.txt$', test_file.name)
+                case_label = m.group(1) if m else test_file.name
                 
-                print(f"\n  Case {case_num}:")
-                f.write(f"\n--- Case {case_num} ---\n")
+                print(f"\n  Case {case_label}:")
+                f.write(f"\n--- Case {case_label} ---\n")
                 
                 for algo in ALGORITHMS:
                     print(f"    {algo:15s}: ", end='', flush=True)
                     
                     result, error = run_bonus_test(algo, test_file)
-                    entry = create_log_entry(algo, bits, case_num, result, error)
+                    try:
+                        case_num_value = int(case_label)
+                    except Exception:
+                        case_num_value = 0
+                    entry = create_log_entry(algo, bits, case_num_value, result, error)
                     all_results.append(entry)
                     
                     if result and result['success']:
@@ -265,7 +278,7 @@ def generate_bonus_plots(plot_data, bit_lengths, log_dir):
     }
     
     # Create plots
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6)) # type: ignore
     
     # Linear scale
     max_time = 0
@@ -303,10 +316,10 @@ def generate_bonus_plots(plot_data, bit_lengths, log_dir):
     ax2.legend(loc='upper left')
     ax2.grid(True, alpha=0.3, which='both')
     
-    plt.tight_layout()
+    plt.tight_layout() # type: ignore
     output_file = log_dir / f'bonus_performance_{min(bit_lengths)}_{max(bit_lengths)}bit.png'
-    plt.savefig(output_file, dpi=150, bbox_inches='tight')
-    plt.close()
+    plt.savefig(output_file, dpi=150, bbox_inches='tight') # type: ignore
+    plt.close() # type: ignore
     
     print(f"  📊 Bonus comparison: {output_file}")
 

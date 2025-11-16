@@ -27,6 +27,12 @@ python3 <algoname>/main_optimized.py <testcase_path>
 # Compare all algorithms
 python3 run_comparisons.py <start_bit_size> <end_bit_size> # default : 10 18
 # It also generates graphs in graphs/ directory
+
+# Generate test cases
+python3 generate_test_cases.py <k>                                   # single bitsize (default 5 cases)
+python3 generate_test_cases.py <start_bit> <end_bit> [cases_per_bit]  # range
+# or with flags:
+python3 generate_test_cases.py --start <s> --end <e> [--cases <n>]
 ```
 
 ## Input Format

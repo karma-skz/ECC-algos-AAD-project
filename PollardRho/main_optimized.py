@@ -61,7 +61,7 @@ def fast_scalar_mult(k: int, G: Point, curve: EllipticCurve) -> Point:
     result_x = ctypes.c_int64()
     result_y = ctypes.c_int64()
     
-    valid = ecc_lib.scalar_mult(
+    valid = ecc_lib.scalar_mult( # type: ignore
         ctypes.c_int64(k),
         ctypes.c_int64(gx),
         ctypes.c_int64(gy),
@@ -92,7 +92,7 @@ def fast_point_add(P: Point, Q: Point, curve: EllipticCurve) -> Point:
     result_x = ctypes.c_int64()
     result_y = ctypes.c_int64()
     
-    valid = ecc_lib.point_add(
+    valid = ecc_lib.point_add( # type: ignore
         ctypes.c_int64(x1),
         ctypes.c_int64(y1),
         ctypes.c_int64(x2),
@@ -287,7 +287,7 @@ def main():
     
     print(f"Solving ECDLP using Optimized Pollard Rho...")
     print(f"Curve: y^2 = x^3 + {a}x + {b} (mod {p})")
-    print(f"G = ({G[0]}, {G[1]}), Q = ({Q[0]}, {Q[1]}), n = {n}")
+    print(f"G = ({G[0]}, {G[1]}), Q = ({Q[0]}, {Q[1]}), n = {n}") # type: ignore
     print(f"Partitions: {partition_m}, Max steps/attempt: {max_steps}, Attempts: {max_attempts}")
     
     start_time = time.perf_counter()
@@ -311,7 +311,7 @@ def main():
         verified = (Q_verify == Q)
         
         print(f"\n{'='*50}")
-        print(f"Solution: d = {d} (found in attempt {attempt}/{max_attempts})")
+        print(f"Solution: d = {d} (found in attempt {attempt}/{max_attempts})") # type: ignore
         print(f"Total steps: {total_steps:,}")
         print(f"Time: {elapsed:.6f} seconds")
         print(f"Verification: {'PASSED' if verified else 'FAILED'}")

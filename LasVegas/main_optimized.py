@@ -147,7 +147,7 @@ def main():
     
     print(f"Solving ECDLP using Optimized Las Vegas...")
     print(f"Curve: y^2 = x^3 + {a}x + {b} (mod {p})")
-    print(f"G = ({G[0]}, {G[1]}), Q = ({Q[0]}, {Q[1]}), n = {n}")
+    print(f"G = ({G[0]}, {G[1]}), Q = ({Q[0]}, {Q[1]}), n = {n}") #type: ignore
     print()
     
     max_attempts = 50000  # Increased attempts

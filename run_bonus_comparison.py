@@ -17,15 +17,22 @@ from pathlib import Path
 # Only deterministic algorithms for bonus (probabilistic ones not feasible)
 BONUS_ALGORITHMS = ['BruteForce', 'BabyStep', 'PohligHellman']
 
+def discover_case_files(bit_length: int):
+    """Return sorted list of case files for given bitsize."""
+    cases_dir = Path('test_cases') / f'{bit_length:02d}bit'
+    if not cases_dir.exists():
+        return []
+    import re
+    def case_key(p: Path):
+        m = re.search(r'case_(\d+)\.txt$', p.name)
+        return int(m.group(1)) if m else 0
+    return sorted(cases_dir.glob('case_*.txt'), key=case_key)
+
 def test_bonus_algorithm(algo, bit_length):
-    """Test bonus implementation on all 5 test cases for a bit length."""
+    """Test bonus implementation on all available test cases for a bit length."""
     results = []
-    
-    for case_num in range(1, 6):
-        test_file = Path(f'test_cases/{bit_length:02d}bit/case_{case_num}.txt')
-        if not test_file.exists():
-            results.append((None, None, None))
-            continue
+    case_files = discover_case_files(bit_length)
+    for test_file in case_files:
         
         script = Path(algo) / 'bonus.py'
         if not script.exists():
@@ -71,7 +78,7 @@ def test_bonus_algorithm(algo, bit_length):
     return results
 
 def format_bonus_results(results):
-    """Format bonus test results showing all 5 cases and average."""
+    """Format bonus test results showing all cases and average."""
     valid_results = [(t, s) for t, s, l in results if t is not None and t > 0]
     
     # Format individual times
@@ -102,10 +109,12 @@ def format_bonus_results(results):
             avg_speedup = sum(speedups) / len(speedups)
             avg_str += f" [{avg_speedup:.1f}x speedup]"
         
-        passed = f"({len(valid_results)}/5)"
+        denom = len(results) if results else 0
+        passed = f"({len(valid_results)}/{denom})"
     else:
         avg_str = "FAILED"
-        passed = "(0/5)"
+        denom = len(results) if results else 0
+        passed = f"(0/{denom})"
     
     return f"{time_str} | {avg_str:30s} {passed}"
 
@@ -124,7 +133,7 @@ def main():
     print(f"ECC ECDLP BONUS Performance Comparison ({bit_start}-{bit_end} bits)")
     print("With Key Leakage Optimization")
     print("=" * 130)
-    print("Format: Case1 | Case2 | Case3 | Case4 | Case5 | Average (with speedup)")
+    print("Format: Per-case times | Average (with speedup)")
     print("Note: PohligHellman shows N/A when order factorization fails")
     print("      PollardRho/LasVegas not included (infeasible beyond 18 bits)")
     print("=" * 130)

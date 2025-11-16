@@ -31,15 +31,24 @@ results = defaultdict(lambda: defaultdict(list))
 project_root = Path(__file__).parent
 
 print("="*80)
-print("Quick Test: 10-14 bit cases (5 cases each)")
+print("Quick Test: 10-14 bit cases (all available cases)")
 print("="*80)
 
 for bits in range(10, 15):
     print(f"\n{bits}-bit:")
     test_dir = project_root / 'test_cases' / f'{bits:02d}bit'
-    for case_num in range(1, 6):
-        test_file = test_dir / f'case_{case_num}.txt'
-        print(f"  Case {case_num}:", end=' ')
+    if not test_dir.exists():
+        print("  (no cases)")
+        continue
+    import re
+    def case_key(p: Path):
+        m = re.search(r'case_(\d+)\.txt$', p.name)
+        return int(m.group(1)) if m else 0
+    case_files = sorted(test_dir.glob('case_*.txt'), key=case_key)
+    for test_file in case_files:
+        m = re.search(r'case_(\d+)\.txt$', test_file.name)
+        case_label = m.group(1) if m else test_file.name
+        print(f"  Case {case_label}:", end=' ')
         for algo_name, config in ALGORITHMS.items():
             script_path = project_root / config['script']
             if not script_path.exists(): continue
@@ -63,7 +72,8 @@ for bits in range(10, 15):
             success_count = sum(1 for c in cases if c['success'])
             times = [c['time'] for c in cases if c['success']]
             avg_time = sum(times)/len(times) if times else 0
-            row += f" {success_count}/5 {avg_time:>6.3f}s   "
+            denom = len(cases)
+            row += f" {success_count}/{denom} {avg_time:>6.3f}s   "
         else:
             row += f" -/-  ------s   "
     print(row)

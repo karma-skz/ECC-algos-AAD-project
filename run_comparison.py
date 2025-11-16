@@ -6,7 +6,18 @@ import time
 import sys
 from pathlib import Path
 
-ALGORITHMS = ['BruteForce', 'BabyStep', 'PohligHellman'] # 'PollardRho', 'LasVegas']
+ALGORITHMS = ['BruteForce', 'BabyStep', 'PohligHellman', 'PollardRho'] #, 'LasVegas']
+
+def discover_case_files(bit_length: int):
+    """Return sorted list of case files for given bitsize."""
+    cases_dir = Path('test_cases') / f'{bit_length:02d}bit'
+    if not cases_dir.exists():
+        return []
+    import re
+    def case_key(p: Path):
+        m = re.search(r'case_(\d+)\.txt$', p.name)
+        return int(m.group(1)) if m else 0
+    return sorted(cases_dir.glob('case_*.txt'), key=case_key)
 
 # Try to import matplotlib, but don't fail if not available
 try:
@@ -19,14 +30,10 @@ except ImportError:
     print("Note: matplotlib not available, skipping graph generation")
 
 def test_algorithm(algo, bit_length):
-    """Test one algorithm on all 5 test cases for a bit length."""
+    """Test one algorithm on all available test cases for a bit length."""
     results = []
-    
-    for case_num in range(1, 6):
-        test_file = Path(f'test_cases/{bit_length:02d}bit/case_{case_num}.txt')
-        if not test_file.exists():
-            results.append((None, None))
-            continue
+    case_files = discover_case_files(bit_length)
+    for test_file in case_files:
         
         script = Path(algo) / 'main_optimized.py'
         if not script.exists():
@@ -70,7 +77,7 @@ def test_algorithm(algo, bit_length):
     return results
 
 def format_results(results, algo_name):
-    """Format test results showing all 5 cases and average."""
+    """Format test results showing all cases and average."""
     valid_times = [r[0] for r in results if r[0] is not None and r[0] > 0]
     attempts_list = [r[1] for r in results if r[1] is not None]
     
@@ -95,10 +102,12 @@ def format_results(results, algo_name):
             avg_str = f"avg={avg*1000:.1f}ms"
         else:
             avg_str = f"avg={avg:.3f}s"
-        passed = f"({len(valid_times)}/5)"
+        denom = len(results) if results else 0
+        passed = f"({len(valid_times)}/{denom})"
     else:
         avg_str = "FAILED"
-        passed = "(0/5)"
+        denom = len(results) if results else 0
+        passed = f"(0/{denom})"
     
     # Add attempt info for probabilistic algorithms
     if attempts_list and algo_name in ['PollardRho', 'LasVegas']:
@@ -124,7 +133,7 @@ def main():
     print("=" * 120)
     print(f"ECC ECDLP Performance Comparison ({bit_start}-{bit_end} bits)")
     print("=" * 120)
-    print("Format: Case1 | Case2 | Case3 | Case4 | Case5 | Average (passed/total)")
+    print("Format: Per-case times | Average (passed/total)")
     print("Note: PohligHellman shows N/A when order factorization fails (expected for random curves)")
     print("      PollardRho/LasVegas show attempt count (probabilistic algorithms)")
     print("=" * 120)
@@ -177,7 +186,7 @@ def generate_plots(plot_data, bit_start, bit_end):
     }
     
     # Plot 1: Linear scale (clipped for readability)
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6)) # type: ignore
     
     # Linear scale plot
     max_time = 0
@@ -215,15 +224,15 @@ def generate_plots(plot_data, bit_start, bit_end):
     ax2.legend(loc='upper left')
     ax2.grid(True, alpha=0.3, which='both')
     
-    plt.tight_layout()
+    plt.tight_layout() # type: ignore
     output_file = output_dir / f'comparison_{bit_start}_{bit_end}bit.png'
-    plt.savefig(output_file, dpi=150, bbox_inches='tight')
-    plt.close()
+    plt.savefig(output_file, dpi=150, bbox_inches='tight') # type: ignore
+    plt.close() # type: ignore
     
     print(f"  📊 Main comparison: {output_file}")
     
     # Plot 2: Individual algorithm performance (separate subplots)
-    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10)) # type: ignore
     axes = axes.flatten()
     
     for idx, algo in enumerate(ALGORITHMS):
@@ -248,12 +257,12 @@ def generate_plots(plot_data, bit_start, bit_end):
     # Hide the 6th subplot (we only have 5 algorithms)
     axes[5].axis('off')
     
-    plt.suptitle(f'Individual Algorithm Performance ({bit_start}-{bit_end} bits)', 
+    plt.suptitle(f'Individual Algorithm Performance ({bit_start}-{bit_end} bits)',  # type: ignore
                 fontsize=16, fontweight='bold', y=1.00)
-    plt.tight_layout()
+    plt.tight_layout() # type: ignore
     output_file = output_dir / f'individual_{bit_start}_{bit_end}bit.png'
-    plt.savefig(output_file, dpi=150, bbox_inches='tight')
-    plt.close()
+    plt.savefig(output_file, dpi=150, bbox_inches='tight') # type: ignore
+    plt.close() # type: ignore
     
     print(f"  📊 Individual plots: {output_file}")
 

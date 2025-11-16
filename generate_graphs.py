@@ -16,11 +16,22 @@ except ImportError:
     print("Error: matplotlib not installed. Run: pip3 install matplotlib")
     sys.exit(1)
 
+def discover_case_files(bits: int):
+    cases_dir = Path('test_cases') / f'{bits:02d}bit'
+    if not cases_dir.exists():
+        return []
+    import re
+    def case_key(p: Path):
+        m = re.search(r'case_(\d+)\.txt$', p.name)
+        return int(m.group(1)) if m else 0
+    return sorted(cases_dir.glob('case_*.txt'), key=case_key)
+
 def test_algorithm_quick(algo, bits):
-    """Quick test - just first case to get average time."""
-    test_file = Path(f'test_cases/{bits:02d}bit/case_1.txt')
-    if not test_file.exists():
+    """Quick test - use first available case to get indicative time."""
+    case_files = discover_case_files(bits)
+    if not case_files:
         return None
+    test_file = case_files[0]
     
     script = Path(algo) / 'main_optimized.py'
     if not script.exists():

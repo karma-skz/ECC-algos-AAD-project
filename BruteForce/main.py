@@ -86,7 +86,7 @@ def main():
     
     print(f"Solving ECDLP using Brute Force...")
     print(f"Curve: y^2 = x^3 + {a}x + {b} (mod {p})")
-    print(f"G = ({G[0]}, {G[1]}), Q = ({Q[0]}, {Q[1]}), n = {n}")
+    print(f"G = ({G[0]}, {G[1]}), Q = ({Q[0]}, {Q[1]}), n = {n}") # type: ignore
     
     start_time = time.perf_counter()
     try:

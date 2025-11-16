@@ -2,10 +2,16 @@
 """
 ECC ECDLP Test Case Generator
 
-Usage: python3 generate_test_cases.py <k>
-where k = bit length (10-40)
+Usage:
+    - Single bitsize (default behavior):
+            python3 generate_test_cases.py <k>
+                where k = bit length (10-50)
+                generates 5 cases by default (unchanged)
 
-Generates 5 diverse test cases for the specified bit length.
+    - Range with optional cases per bitsize:
+            python3 generate_test_cases.py <start_bit> <end_bit> [cases_per_bit]
+            python3 generate_test_cases.py --start <s> --end <e> [--cases <n>]
+            python3 generate_test_cases.py <s> <e> --cases <n>
 """
 
 import sys
@@ -145,18 +151,21 @@ def find_generator_point(curve, p, seed_val=0):
     
     return None
 
-def generate_test_cases_for_bits(k):
-    """Generate 5 test cases for k-bit ECDLP problems."""
+def generate_test_cases_for_bits(k, num_cases=5):
+    """Generate test cases for k-bit ECDLP problems.
+
+    Defaults to 5 cases per bitsize to preserve original behavior.
+    """
     if k < 10 or k > 50:
         print(f"Error: Bit length must be between 10 and 50")
         return 0
     
-    print(f"\nGenerating 5 test cases for {k}-bit ECDLP...")
+    print(f"\nGenerating {num_cases} test cases for {k}-bit ECDLP...")
     print("=" * 70)
     
     success_count = 0
     
-    for case_num in range(1, 6):
+    for case_num in range(1, num_cases + 1):
         p = find_random_prime(k, seed_offset=case_num)
         if not p:
             print(f"  ✗ Case {case_num}: No prime found")
@@ -204,7 +213,7 @@ def generate_test_cases_for_bits(k):
             f.write(f'{a} {b}\n')
             f.write(f'{G[0]} {G[1]}\n')
             f.write(f'{n}\n')
-            f.write(f'{Q[0]} {Q[1]}\n')
+            f.write(f'{Q[0]} {Q[1]}\n') # type: ignore
         
         # Also save the answer (private key) for bonus implementations
         answer_file = test_dir / f'answer_{case_num}.txt'
@@ -215,38 +224,134 @@ def generate_test_cases_for_bits(k):
         success_count += 1
     
     print("=" * 70)
-    print(f"✓ Generated {success_count}/5 test cases")
+    print(f"✓ Generated {success_count}/{num_cases} test cases")
     return success_count
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python3 generate_test_cases.py <k>")
-        print("where k = bit length (10-40)")
+    args = sys.argv[1:]
+
+    # Minimal argument parsing supporting positional and flags while
+    # preserving the original defaults (single k -> 5 cases).
+    def print_usage_and_exit():
+        print("Usage:")
+        print("  python3 generate_test_cases.py <k>")
+        print("  python3 generate_test_cases.py <start_bit> <end_bit> [cases_per_bit]")
+        print("  python3 generate_test_cases.py --start <s> --end <e> [--cases <n>]")
+        print("Constraints: bit length must be between 10 and 50")
         sys.exit(1)
+
+    # Extract optional --start/--end/--cases flags if provided
+    start_flag = None
+    end_flag = None
+    cases_flag = None
+    i = 0
+    positional = []
+    while i < len(args):
+        if args[i] in ("--start", "-s"):
+            if i + 1 >= len(args):
+                print("Error: --start requires a value")
+                print_usage_and_exit()
+            start_flag = args[i + 1]
+            i += 2
+        elif args[i] in ("--end", "-e"):
+            if i + 1 >= len(args):
+                print("Error: --end requires a value")
+                print_usage_and_exit()
+            end_flag = args[i + 1]
+            i += 2
+        elif args[i] in ("--cases", "-c"):
+            if i + 1 >= len(args):
+                print("Error: --cases requires a value")
+                print_usage_and_exit()
+            cases_flag = args[i + 1]
+            i += 2
+        else:
+            positional.append(args[i])
+            i += 1
+
+    # Determine start, end, and cases from provided inputs
+    start_bit = None
+    end_bit = None
+    cases_per_bit = None
+
+    # First, if flags present, use them
+    if start_flag is not None or end_flag is not None:
+        if start_flag is None or end_flag is None:
+            print("Error: --start and --end must be used together")
+            print_usage_and_exit()
+        try:
+            start_bit = int(start_flag) # type: ignore
+            end_bit = int(end_flag) # type: ignore
+        except ValueError:
+            print("Error: --start and --end must be integers")
+            sys.exit(1)
     
-    try:
-        k = int(sys.argv[1])
-    except ValueError:
-        print(f"Error: Argument must be an integer")
+    # Next, handle positional variants
+    if len(positional) == 1 and start_bit is None:
+        # Original mode: single k
+        try:
+            k = int(positional[0])
+        except ValueError:
+            print("Error: <k> must be an integer")
+            sys.exit(1)
+        start_bit = k
+        end_bit = k
+    elif len(positional) == 2 and start_bit is None:
+        try:
+            start_bit = int(positional[0])
+            end_bit = int(positional[1])
+        except ValueError:
+            print("Error: <start_bit> and <end_bit> must be integers")
+            sys.exit(1)
+    elif len(positional) == 3 and start_bit is None:
+        try:
+            start_bit = int(positional[0])
+            end_bit = int(positional[1])
+            cases_per_bit = int(positional[2])
+        except ValueError:
+            print("Error: <start_bit> <end_bit> [cases_per_bit] must be integers")
+            sys.exit(1)
+    elif len(positional) > 3:
+        print_usage_and_exit()
+
+    # If neither flags nor positional provided for start/end, show usage
+    if start_bit is None or end_bit is None:
+        print_usage_and_exit()
+    # Type narrowing for linters/type checkers
+    assert isinstance(start_bit, int) and isinstance(end_bit, int)
+
+    # If cases specified via flag, it overrides positional third arg
+    if cases_flag is not None:
+        try:
+            cases_per_bit = int(cases_flag)
+        except ValueError:
+            print("Error: --cases must be an integer")
+            sys.exit(1)
+
+    if cases_per_bit is None:
+        cases_per_bit = 5  # Preserve original default
+
+    # Validate ranges
+    if start_bit < 10 or end_bit > 50 or start_bit > end_bit:
+        print("Error: Bit length range must be 10 <= start <= end <= 50")
         sys.exit(1)
-    
-    if k < 10 or k > 50:
-        print(f"Error: Bit length must be between 10 and 50")
-        sys.exit(1)
-    
+
     print("=" * 70)
     print(f"ECC ECDLP Test Case Generator")
     print("=" * 70)
-    print(f"Bit length: {k}")
-    
-    count = generate_test_cases_for_bits(k)
-    
-    if count > 0:
-        print(f"\n✓ Success! Generated {count} test cases")
-        print(f"  Location: test_cases/{k:02d}bit/")
-    else:
-        print("\n✗ Failed to generate test cases")
-        sys.exit(1)
+    print(f"Bit lengths: {start_bit} to {end_bit} (inclusive)")
+    print(f"Cases per bitsize: {cases_per_bit}")
+
+    total_bits = 0
+    for k in range(start_bit, end_bit + 1):
+        count = generate_test_cases_for_bits(k, num_cases=cases_per_bit)
+        if count > 0:
+            print(f"  Location: test_cases/{k:02d}bit/")
+        total_bits += 1
+
+    # If at least one bitsize produced at least one case, consider success
+    # Note: generate_test_cases_for_bits already prints per-bitsize results
+    print("\n✓ Done generating test cases across range.")
 
 if __name__ == "__main__":
     main()
