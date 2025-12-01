@@ -13,13 +13,6 @@ STEP = 2  # Step size for bits (20, 22, 24...)
 # Map curve types to the algorithm that breaks them
 SCENARIOS = [
     {
-        "name": "Supersingular (MOV)",
-        "folder": "MOV_friendly",
-        "script": "../MOV/main_optimized.py",
-        "color": "red",
-        "marker": "o"
-    },
-    {
         "name": "Anomalous (Smart)",
         "folder": "Anomalous",
         "script": "smart.py",
