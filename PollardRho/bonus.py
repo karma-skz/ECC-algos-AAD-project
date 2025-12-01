@@ -2,7 +2,7 @@
 Pollard's Kangaroo (Lambda) - BONUS
 Adaptation: Solves ECDLP in bounded interval [a, b]. O(sqrt(width)).
 """
-import sys, time, math, random, ctypes
+import sys, time, math, random, ctypes, argparse
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils import EllipticCurve, Point, load_input
@@ -92,22 +92,81 @@ def kangaroo(curve, G, Q, lower, upper):
             
     return None
 
+def solve_lsb(curve, G, Q, n, leak, bits):
+    """
+    Solves d = x * 2^bits + leak using Kangaroo on the transformed problem.
+    """
+    # 1. Compute Q'
+    leakG = fast_mult(leak, G, curve)
+    Q_prime = curve.add(Q, curve.negate(leakG))
+    
+    # 2. Compute G'
+    factor = 1 << bits
+    G_prime = fast_mult(factor, G, curve)
+    
+    # 3. Solve smaller DLP: Q' = x * G'
+    limit = n // factor
+    
+    # Use Kangaroo on [0, limit]
+    # Note: Kangaroo expects (curve, G, Q, lower, upper)
+    return kangaroo(curve, G_prime, Q_prime, 0, limit)
+
 def main():
-    if len(sys.argv) < 2: return
-    p, a, b, G, n, Q = load_input(Path(sys.argv[1]))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file", help="Path to test case file")
+    parser.add_argument("--interval-width", type=int, help="Width of interval to search")
+    parser.add_argument("--leak-bits", type=int, help="Number of LSB bits to leak")
+    args = parser.parse_args()
+
+    p, a, b, G, n, Q = load_input(Path(args.file))
     curve = EllipticCurve(a, b, p)
     try:
-        num = Path(sys.argv[1]).stem.split('_')[1]
-        with open(Path(sys.argv[1]).parent / f"answer_{num}.txt") as f: d_real = int(f.read())
+        case_path = Path(args.file)
+        name_parts = case_path.stem.split('_')
+        num = name_parts[-1]
+        ans_file = case_path.parent / f"answer_{num}.txt"
+        if not ans_file.exists(): ans_file = case_path.parent / "answer.txt"
+        
+        if ans_file.exists():
+            with open(ans_file) as f: d_real = int(f.read())
+        else:
+            d_real = n // 2
     except: d_real = n // 2
 
+    # --- MODE 1: Specific Leak Test ---
+    if args.leak_bits is not None:
+        bits_to_leak = args.leak_bits
+        leak = d_real & ((1<<bits_to_leak)-1)
+        
+        t0 = time.perf_counter()
+        # Result x is the upper part, so d = x * 2^bits + leak
+        x = solve_lsb(curve, G, Q, n, leak, bits_to_leak)
+        t = time.perf_counter() - t0
+        
+        d = (x * (1<<bits_to_leak) + leak) if x is not None else None
+        
+        print_bonus_result("PollardRho", "success" if d == d_real else "fail", t, 0, {"leaked_bits": bits_to_leak})
+        return
+
+    # --- MODE 2: Specific Interval Test ---
+    if args.interval_width is not None:
+        target_width = args.interval_width
+        lower = max(1, d_real - target_width//2)
+        upper = lower + target_width
+        
+        t0 = time.perf_counter()
+        d = kangaroo(curve, G, Q, lower, upper)
+        t = time.perf_counter() - t0
+        
+        print_bonus_result("PollardRho", "success" if d == d_real else "fail", t, 0, {"interval_width": target_width})
+        return
+
+    # --- MODE 2: Default Demo ---
     print(f"\n{'='*70}")
     print(f"POLLARD'S KANGAROO (LAMBDA) DEMO")
     print(f"{'='*70}")
     
     # Smart Interval Selection
-    # If curve is tiny (20 bit), 100k width is larger than n.
-    # We clamp width to be meaningful (e.g. 1/4 of n)
     target_width = 100000
     if target_width > n:
         target_width = n // 2

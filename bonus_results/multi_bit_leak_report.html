@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ECC Multi-Bit Leak Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f5f7fa; color: #333; }
+        .container { max_width: 1200px; margin: 0 auto; }
+        .header { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .chart-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { margin: 0 0 10px 0; font-size: 24px; }
+        h2 { font-size: 18px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .full-width { grid-column: 1 / -1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ECC Side-Channel Analysis: Multi-Bit Comparison</h1>
+            <p>Generated: 2025-12-01 20:22:14 | Timeout: 10s</p>
+            <p>This report compares how different algorithms perform under partial information leakage across increasing curve sizes.</p>
+        </div>
+
+        <div class="grid">
+            <!-- 1. Brute Force -->
+            <div class="chart-card">
+                <h2>1. Brute Force: Impact of LSB Leakage</h2>
+                <canvas id="bfChart"></canvas>
+                <p><small>X: Bits Leaked | Y: Time (s)</small></p>
+            </div>
+
+            <!-- 2. Baby Step -->
+            <div class="chart-card">
+                <h2>2. Baby Step Giant Step: Impact of LSB Leakage</h2>
+                <canvas id="bsgsChart"></canvas>
+                <p><small>X: Bits Leaked | Y: Time (s)</small></p>
+            </div>
+
+            <!-- 3. Pollard Rho -->
+            <div class="chart-card">
+                <h2>3. Pollard Rho: Impact of LSB Leakage</h2>
+                <canvas id="rhoChart"></canvas>
+                <p><small>X: Bits Leaked | Y: Time (s)</small></p>
+            </div>
+
+            <!-- 4. Kangaroo -->
+            <div class="chart-card">
+                <h2>4. Pollard's Kangaroo: Interval Reduction</h2>
+                <canvas id="kangChart"></canvas>
+                <p><small>X: Reduction Factor (N/Width) | Y: Time (s)</small></p>
+            </div>
+
+            <!-- 5. Las Vegas -->
+            <div class="chart-card full-width">
+                <h2>5. Las Vegas: Approximate Key Knowledge</h2>
+                <canvas id="lvChart"></canvas>
+                <p><small>X: Error Margin (+/-) | Y: Time (s)</small></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const commonOptions = {
+            scales: {
+                y: { type: 'logarithmic', title: { display: true, text: 'Time (s)' } },
+                x: { title: { display: true, text: 'Parameter' } }
+            },
+            plugins: { legend: { position: 'right' } }
+        };
+
+        // 1. Brute Force
+        new Chart(document.getElementById('bfChart'), {
+            type: 'line',
+            data: { datasets: [{"label": "15-bit Curve", "data": [{"x": 0, "y": 1.5375029761344194e-05}, {"x": 4, "y": 1.3707962352782488e-05}, {"x": 8, "y": 1.837499439716339e-05}], "borderColor": "#FF6384", "fill": false, "tension": 0.1}, {"label": "20-bit Curve", "data": [{"x": 0, "y": 0.14946120796957985}, {"x": 4, "y": 0.009439000044949353}, {"x": 8, "y": 0.0006206670077517629}, {"x": 12, "y": 6.699998630210757e-05}, {"x": 16, "y": 4.008301766589284e-05}], "borderColor": "#36A2EB", "fill": false, "tension": 0.1}, {"label": "25-bit Curve", "data": [{"x": 0, "y": 0.8808436659746803}, {"x": 4, "y": 0.055078167002648115}, {"x": 8, "y": 0.0035673329839482903}, {"x": 12, "y": 0.00025112502044066787}, {"x": 16, "y": 4.4042011722922325e-05}, {"x": 20, "y": 2.01669754460454e-05}], "borderColor": "#FFCE56", "fill": false, "tension": 0.1}, {"label": "30-bit Curve", "data": [{"x": 4, "y": 4.1202294590184465}, {"x": 8, "y": 0.25661254196893424}, {"x": 12, "y": 0.01609150000149384}, {"x": 16, "y": 0.0010498340125195682}, {"x": 20, "y": 9.716697968542576e-05}, {"x": 24, "y": 2.916704397648573e-05}], "borderColor": "#4BC0C0", "fill": false, "tension": 0.1}, {"label": "35-bit Curve", "data": [{"x": 12, "y": 1.0005493750213645}, {"x": 16, "y": 0.06287962500937283}, {"x": 20, "y": 0.004042375017888844}, {"x": 24, "y": 0.00030345801496878266}], "borderColor": "#9966FF", "fill": false, "tension": 0.1}, {"label": "40-bit Curve", "data": [{"x": 16, "y": 4.243408333044499}, {"x": 20, "y": 0.26233966602012515}, {"x": 24, "y": 0.01648704201215878}], "borderColor": "#FF9F40", "fill": false, "tension": 0.1}] },
+            options: { 
+                ...commonOptions, 
+                scales: { 
+                    ...commonOptions.scales, 
+                    x: { 
+                        type: 'linear',
+                        position: 'bottom',
+                        title: { display: true, text: 'Bits Leaked' } 
+                    } 
+                } 
+            }
+        });
+
+        // 2. BSGS
+        new Chart(document.getElementById('bsgsChart'), {
+            type: 'line',
+            data: { datasets: [{"label": "15-bit Curve", "data": [{"x": 0, "y": 0.00012929103104397655}, {"x": 4, "y": 6.233301246538758e-05}, {"x": 8, "y": 3.250001464039087e-05}], "borderColor": "#FF6384", "fill": false, "tension": 0.1}, {"label": "20-bit Curve", "data": [{"x": 0, "y": 0.0011563749867491424}, {"x": 4, "y": 0.0003451670054346323}, {"x": 8, "y": 0.00011116598034277558}, {"x": 12, "y": 5.3541967645287514e-05}, {"x": 16, "y": 3.345799632370472e-05}], "borderColor": "#36A2EB", "fill": false, "tension": 0.1}, {"label": "25-bit Curve", "data": [{"x": 0, "y": 0.003906750003807247}, {"x": 4, "y": 0.0009897919953800738}, {"x": 8, "y": 0.00028429197845980525}, {"x": 12, "y": 0.00010112498421221972}, {"x": 16, "y": 4.595803329721093e-05}, {"x": 20, "y": 2.4834007490426302e-05}], "borderColor": "#FFCE56", "fill": false, "tension": 0.1}, {"label": "30-bit Curve", "data": [{"x": 0, "y": 0.034377000003587455}, {"x": 4, "y": 0.008702541992533952}, {"x": 8, "y": 0.0021299590007402003}, {"x": 12, "y": 0.000567167007829994}, {"x": 16, "y": 0.00017675000708550215}, {"x": 20, "y": 7.30419997125864e-05}, {"x": 24, "y": 4.254101077094674e-05}], "borderColor": "#4BC0C0", "fill": false, "tension": 0.1}, {"label": "35-bit Curve", "data": [{"x": 0, "y": 0.2548704170039855}, {"x": 4, "y": 0.06350633304100484}, {"x": 8, "y": 0.01560762501321733}, {"x": 12, "y": 0.003995459002908319}, {"x": 16, "y": 0.001012458000332117}, {"x": 20, "y": 0.00030216597951948643}, {"x": 24, "y": 0.00015291699673980474}], "borderColor": "#9966FF", "fill": false, "tension": 0.1}, {"label": "40-bit Curve", "data": [{"x": 0, "y": 2.2711484580067918}, {"x": 4, "y": 0.5578769170097075}, {"x": 8, "y": 0.14148412499343976}, {"x": 12, "y": 0.03465574997244403}, {"x": 16, "y": 0.008674749988131225}, {"x": 20, "y": 0.002315666002687067}, {"x": 24, "y": 0.0005719169857911766}], "borderColor": "#FF9F40", "fill": false, "tension": 0.1}] },
+            options: { 
+                ...commonOptions, 
+                scales: { 
+                    ...commonOptions.scales, 
+                    x: { 
+                        type: 'linear',
+                        position: 'bottom',
+                        title: { display: true, text: 'Bits Leaked' } 
+                    } 
+                } 
+            }
+        });
+
+        // 3. Rho
+        new Chart(document.getElementById('rhoChart'), {
+            type: 'line',
+            data: { datasets: [{"label": "20-bit Curve", "data": [{"x": 4, "y": 0.0006492920219898224}, {"x": 8, "y": 0.0002572080120444298}, {"x": 12, "y": 0.00015662499936297536}, {"x": 16, "y": 0.00012358400272205472}], "borderColor": "#36A2EB", "fill": false, "tension": 0.1}, {"label": "25-bit Curve", "data": [{"x": 4, "y": 0.00303612498100847}, {"x": 8, "y": 0.0009162090136669576}, {"x": 12, "y": 0.00030758295906707644}, {"x": 16, "y": 0.00016724999295547605}], "borderColor": "#FFCE56", "fill": false, "tension": 0.1}, {"label": "30-bit Curve", "data": [{"x": 4, "y": 0.022398624976631254}, {"x": 8, "y": 0.005776791018433869}, {"x": 12, "y": 0.0015089999651536345}, {"x": 16, "y": 0.0004859589971601963}, {"x": 20, "y": 0.00021345895947888494}, {"x": 24, "y": 0.00015287502901628613}], "borderColor": "#4BC0C0", "fill": false, "tension": 0.1}, {"label": "35-bit Curve", "data": [{"x": 4, "y": 0.08349329204065725}, {"x": 8, "y": 0.020911832980345935}, {"x": 12, "y": 0.005441499990411103}, {"x": 16, "y": 0.0014835830079391599}, {"x": 20, "y": 0.0005174579564481974}, {"x": 24, "y": 0.00020408403361216187}], "borderColor": "#9966FF", "fill": false, "tension": 0.1}, {"label": "40-bit Curve", "data": [{"x": 4, "y": 0.5198315840098076}, {"x": 8, "y": 0.13265091605717316}, {"x": 12, "y": 0.032948333013337106}, {"x": 16, "y": 0.020092915976420045}, {"x": 20, "y": 0.002330708026420325}, {"x": 24, "y": 0.0006854170351289213}], "borderColor": "#FF9F40", "fill": false, "tension": 0.1}] },
+            options: { 
+                ...commonOptions, 
+                scales: { 
+                    ...commonOptions.scales, 
+                    x: { 
+                        type: 'linear',
+                        position: 'bottom',
+                        title: { display: true, text: 'Bits Leaked' } 
+                    } 
+                } 
+            }
+        });
+
+        // 4. Kangaroo
+        new Chart(document.getElementById('kangChart'), {
+            type: 'line',
+            data: { datasets: [{"label": "15-bit Curve", "data": [{"x": 16.069620253164558, "y": 0.00023370800772681832}], "borderColor": "#FF6384", "fill": false, "tension": 0.1}, {"label": "20-bit Curve", "data": [{"x": 16.00180469219972, "y": 0.0007182080298662186}, {"x": 256.59485530546624, "y": 0.00025408301735296845}], "borderColor": "#36A2EB", "fill": false, "tension": 0.1}, {"label": "25-bit Curve", "data": [{"x": 16.000155776180783, "y": 0.0027908329502679408}, {"x": 256.01312728481224, "y": 0.0007884159567765892}, {"x": 4097.571808510638, "y": 0.00029758299933746457}], "borderColor": "#FFCE56", "fill": false, "tension": 0.1}, {"label": "30-bit Curve", "data": [{"x": 16.000000552323034, "y": 0.02048000000650063}, {"x": 256.0001973635761, "y": 0.00518849998479709}, {"x": 4096.03935523401, "y": 0.001423124980647117}, {"x": 65539.71870286576, "y": 0.00043774995720013976}], "borderColor": "#4BC0C0", "fill": false, "tension": 0.1}, {"label": "35-bit Curve", "data": [{"x": 16.000000071007523, "y": 0.09189658402465284}, {"x": 256.0000011361204, "y": 0.023490707972086966}, {"x": 4096.004671732255, "y": 0.0058945000055246055}, {"x": 65537.77666514314, "y": 0.00155533297220245}, {"x": 1048735.1535904256, "y": 0.0004853749996982515}], "borderColor": "#9966FF", "fill": false, "tension": 0.1}, {"label": "40-bit Curve", "data": [{"x": 16.00000000236279, "y": 0.6023047500057146}, {"x": 256.0000003677358, "y": 0.1508968339767307}, {"x": 4096.000132577351, "y": 0.03804287500679493}, {"x": 65536.03815854303, "y": 0.009632500004954636}, {"x": 1048583.991032842, "y": 0.002494499960448593}], "borderColor": "#FF9F40", "fill": false, "tension": 0.1}] },
+            options: { 
+                ...commonOptions, 
+                scales: { 
+                    ...commonOptions.scales, 
+                    x: { 
+                        type: 'logarithmic', 
+                        title: { display: true, text: 'Reduction Factor (N/w)' } 
+                    } 
+                } 
+            }
+        });
+
+        // 5. Las Vegas
+        new Chart(document.getElementById('lvChart'), {
+            type: 'line',
+            data: { datasets: [{"label": "15-bit Curve", "data": [{"x": 100, "y": 0.001632792002055794}, {"x": 1000, "y": 0.0071779999998398125}, {"x": 10000, "y": 0.01433245901716873}, {"x": 50000, "y": 0.02124441700289026}], "borderColor": "#FF6384", "fill": false, "tension": 0.1}, {"label": "20-bit Curve", "data": [{"x": 100, "y": 0.0005743750371038914}, {"x": 1000, "y": 0.014953167003113776}, {"x": 10000, "y": 0.0017844170215539634}, {"x": 50000, "y": 0.18641037499764934}], "borderColor": "#36A2EB", "fill": false, "tension": 0.1}, {"label": "25-bit Curve", "data": [{"x": 100, "y": 0.03273899998748675}, {"x": 1000, "y": 0.435265582986176}, {"x": 10000, "y": 1.2739373330259696}, {"x": 50000, "y": 0.006899750034790486}], "borderColor": "#FFCE56", "fill": false, "tension": 0.1}, {"label": "30-bit Curve", "data": [{"x": 100, "y": 0.00010741699952632189}, {"x": 1000, "y": 0.01496558397775516}, {"x": 10000, "y": 0.03454679198330268}, {"x": 50000, "y": 0.2868127500405535}], "borderColor": "#4BC0C0", "fill": false, "tension": 0.1}, {"label": "35-bit Curve", "data": [{"x": 100, "y": 0.0006755419890396297}, {"x": 1000, "y": 0.02677250001579523}, {"x": 10000, "y": 1.5542539579910226}], "borderColor": "#9966FF", "fill": false, "tension": 0.1}, {"label": "40-bit Curve", "data": [{"x": 100, "y": 0.00023437500931322575}, {"x": 1000, "y": 1.120542541029863}, {"x": 10000, "y": 0.08097491698572412}, {"x": 50000, "y": 0.24713437497848645}], "borderColor": "#FF9F40", "fill": false, "tension": 0.1}] },
+            options: { 
+                ...commonOptions, 
+                scales: { 
+                    ...commonOptions.scales, 
+                    x: { 
+                        type: 'linear', 
+                        title: { display: true, text: 'Error Margin' } 
+                    } 
+                } 
+            }
+        });
+    </script>
+</body>
+</html>
+    

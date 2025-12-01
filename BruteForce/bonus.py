@@ -5,6 +5,7 @@ Adaptation: Constrains search to specific bits or intervals.
 import sys
 import time
 import ctypes
+import argparse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -65,15 +66,58 @@ def solve_interval(curve, G, Q, lower, upper):
     return None
 
 def main():
-    if len(sys.argv) < 2: return
-    p, a, b, G, n, Q = load_input(Path(sys.argv[1]))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file", help="Path to test case file")
+    parser.add_argument("--leak-bits", type=int, help="Number of LSB bits to leak")
+    parser.add_argument("--interval-width", type=int, help="Width of interval to search")
+    args = parser.parse_args()
+
+    p, a, b, G, n, Q = load_input(Path(args.file))
     curve = EllipticCurve(a, b, p)
     
     try:
-        num = Path(sys.argv[1]).stem.split('_')[1]
-        with open(Path(sys.argv[1]).parent / f"answer_{num}.txt") as f: d_real = int(f.read())
+        # Try to find answer file
+        case_path = Path(args.file)
+        # Handle both test_X.txt and testcase_X.txt patterns
+        name_parts = case_path.stem.split('_')
+        num = name_parts[-1]
+        
+        ans_file = case_path.parent / f"answer_{num}.txt"
+        if not ans_file.exists():
+             ans_file = case_path.parent / "answer.txt"
+             
+        if ans_file.exists():
+            with open(ans_file) as f: d_real = int(f.read())
+        else:
+            # Fallback for demo if no answer file
+            d_real = 12345
     except: d_real = 12345
 
+    # --- MODE 1: Specific Leak Test (Called by Analysis Script) ---
+    if args.leak_bits is not None:
+        bits_to_leak = args.leak_bits
+        leak = d_real & ((1<<bits_to_leak)-1)
+        space = n // (1<<bits_to_leak)
+        
+        t0 = time.perf_counter()
+        d = solve_lsb(curve, G, Q, n, leak, bits_to_leak)
+        t = time.perf_counter() - t0
+        
+        print_bonus_result("BruteForce", "success" if d == d_real else "fail", t, space, {"leaked_bits": bits_to_leak})
+        return
+
+    # --- MODE 2: Specific Interval Test (Called by Analysis Script) ---
+    if args.interval_width is not None:
+        width = args.interval_width
+        lower = max(1, d_real - width//2)
+        t0 = time.perf_counter()
+        d = solve_interval(curve, G, Q, lower, lower + width)
+        t = time.perf_counter() - t0
+        
+        print_bonus_result("BruteForce", "success" if d == d_real else "fail", t, width, {"interval_width": width})
+        return
+
+    # --- MODE 3: Default Demo (No args) ---
     print(f"\n{'='*70}")
     print(f"BRUTE FORCE ADAPTATIONS (d={d_real})")
     print(f"{'='*70}")

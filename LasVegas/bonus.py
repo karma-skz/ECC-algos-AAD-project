@@ -2,7 +2,7 @@
 Las Vegas with Approximate Hint - BONUS
 Adaptation: Gaussian sampling around approximate key.
 """
-import sys, time, random, ctypes
+import sys, time, random, ctypes, argparse
 from pathlib import Path
 
 # --- BOILERPLATE: PATHS & C++ ---
@@ -48,14 +48,37 @@ def solve_gaussian(curve, G, Q, n, hint, sigma):
     return None, limit, time.perf_counter() - start
 
 def main():
-    if len(sys.argv) < 2: return
-    p, a, b, G, n, Q = load_input(Path(sys.argv[1]))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file", help="Path to test case file")
+    parser.add_argument("--approx-error", type=int, help="Approximate error margin (sigma*3)")
+    args = parser.parse_args()
+
+    p, a, b, G, n, Q = load_input(Path(args.file))
     curve = EllipticCurve(a, b, p)
     try:
-        num = Path(sys.argv[1]).stem.split('_')[1]
-        with open(Path(sys.argv[1]).parent / f"answer_{num}.txt") as f: d_real = int(f.read())
+        case_path = Path(args.file)
+        name_parts = case_path.stem.split('_')
+        num = name_parts[-1]
+        ans_file = case_path.parent / f"answer_{num}.txt"
+        if not ans_file.exists(): ans_file = case_path.parent / "answer.txt"
+        if ans_file.exists():
+            with open(ans_file) as f: d_real = int(f.read())
+        else: d_real = 12345
     except: d_real = 12345
 
+    # --- MODE 1: Specific Error Test ---
+    if args.approx_error is not None:
+        error = args.approx_error
+        # Hint is exactly 'error' away to test worst case, or random
+        hint = d_real + random.randint(-error, error)
+        sigma = max(1, error / 3.0)
+        
+        d, tries, t = solve_gaussian(curve, G, Q, n, hint, sigma)
+        
+        print_bonus_result("LasVegas", "success" if d == d_real else "fail", t, tries, {"approx_error": error})
+        return
+
+    # --- MODE 2: Default Demo ---
     print(f"\n{'='*60}")
     print(f"LAS VEGAS: GAUSSIAN SAMPLING")
     print(f"{'='*60}")
