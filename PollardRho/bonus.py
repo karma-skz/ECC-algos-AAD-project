@@ -41,61 +41,55 @@ def fast_add(P, Q, curve):
 
 def kangaroo(curve, G, Q, lower, upper):
     width = upper - lower
-    # Optimal jumps: average step size approx sqrt(width)/2
     m = int(math.sqrt(width))
-    k = 32 # number of different jump sizes
+    k = 32 
     
-    # Generate random deterministic jumps based on G
-    # We essentially Hash(P) -> Index
-    jumps = []
-    random.seed(curve.a ^ curve.b) # Deterministic setup
-    mean_step = width / (4 * m) # Heuristic
-    
-    # Create power-of-2 like distribution for efficiency
-    for _ in range(k):
-        jumps.append(random.randint(1, int(width**0.5) + 1))
+    # Try multiple attempts with different jump sets to ensure success
+    for attempt in range(10):
+        # Generate random jumps
+        # Use attempt in seed to vary jumps on retry
+        random.seed(curve.a ^ curve.b ^ attempt)
         
-    jump_points = [fast_mult(j, G, curve) for j in jumps]
-    
-    def get_index(P):
-        return (P[0] ^ P[1]) % k
-    
-    # 1. Tame Kangaroo (Trap)
-    # Start at 'upper' and walk FORWARD d_tame steps
-    # We store the trap position and the distance d_tame
-    tame_pos = fast_mult(upper, G, curve)
-    tame_dist = 0
-    
-    # Walk approx 1.5 * sqrt(width) steps
-    walk_len = int(1.5 * m)
-    for _ in range(walk_len):
-        idx = get_index(tame_pos)
-        tame_pos = fast_add(tame_pos, jump_points[idx], curve)
-        tame_dist += jumps[idx]
-        
-    trap_pos = tame_pos
-    total_trap_scalar = upper + tame_dist
-    
-    # 2. Wild Kangaroo
-    # Start at Q (scalar x) and walk forward
-    wild_pos = Q
-    wild_dist = 0
-    
-    # Limit: If wild walks past the trap's total distance, we missed it
-    # Max possible distance between x and upper is 'width'.
-    # So if wild_dist > width + tame_dist, we overshot.
-    limit = width + tame_dist + 1000
-    
-    while wild_dist < limit:
-        if wild_pos == trap_pos:
-            # Collision!
-            # x + wild_dist = upper + tame_dist
-            return total_trap_scalar - wild_dist
+        jumps = []
+        for _ in range(k):
+            # Mean step size approx sqrt(width)/2
+            val = random.randint(1, int(width**0.5) + 1)
+            jumps.append(val)
             
-        idx = get_index(wild_pos)
-        wild_pos = fast_add(wild_pos, jump_points[idx], curve)
-        wild_dist += jumps[idx]
+        jump_points = [fast_mult(j, G, curve) for j in jumps]
         
+        def get_index(P):
+            return (P[0] ^ P[1]) % k
+        
+        # 1. Tame Kangaroo (Trap)
+        tame_pos = fast_mult(upper, G, curve)
+        tame_dist = 0
+        
+        # Walk further to increase trap probability (2.0 * m)
+        walk_len = int(2.0 * m)
+        for _ in range(walk_len):
+            idx = get_index(tame_pos)
+            tame_pos = fast_add(tame_pos, jump_points[idx], curve)
+            tame_dist += jumps[idx]
+            
+        trap_pos = tame_pos
+        total_trap_scalar = upper + tame_dist
+        
+        # 2. Wild Kangaroo
+        wild_pos = Q
+        wild_dist = 0
+        
+        # Limit: width + tame_dist + margin
+        limit = width + tame_dist + 2000
+        
+        while wild_dist < limit:
+            if wild_pos == trap_pos:
+                return total_trap_scalar - wild_dist
+                
+            idx = get_index(wild_pos)
+            wild_pos = fast_add(wild_pos, jump_points[idx], curve)
+            wild_dist += jumps[idx]
+            
     return None
 
 def main():
