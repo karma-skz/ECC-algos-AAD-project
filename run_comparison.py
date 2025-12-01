@@ -7,9 +7,9 @@ import sys
 from pathlib import Path
 
 # Enable the main algorithms for comparison
-#ALGORITHMS = ['BruteForce', 'BabyStep', 'PohligHellman', 'PollardRho', 'LasVegas']
+ALGORITHMS = ['BruteForce', 'BabyStep', 'PohligHellman', 'PollardRho', 'LasVegas']
 #ALGORITHMS = ['PohligHellman','PollardRho', 'LasVegas']
-ALGORITHMS = ['BabyStep', 'PohligHellman', 'PollardRho', 'LasVegas']
+#ALGORITHMS = ['BabyStep', 'PohligHellman', 'PollardRho', 'LasVegas']
 
 
 def discover_case_files(bit_length: int):
