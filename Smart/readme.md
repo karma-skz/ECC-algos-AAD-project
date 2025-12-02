@@ -41,6 +41,12 @@ python3 Smart/main.py --verify test_cases/35bit/case_2.txt
 python3 Smart/main_optimized.py --quiet test_cases/40bit/case_3.txt
 ```
 
+### Run All Test Cases
+
+```bash
+oython3 Smart/run.py --start 20 --end 40 --step 5 # optional start end step
+```
+
 ## Input Format
 
 Test case file format:
@@ -141,14 +147,3 @@ for case in test_cases/30bit/case_*.txt; do
     python3 Smart/main.py "$case"
 done
 ```
-
-## Performance
-
-| Bit Size | Order n | Time     |
-|----------|---------|----------|
-| 20-bit   | ~1M     | <0.01s   |
-| 30-bit   | ~1B     | ~0.1s    |
-| 35-bit   | ~34B    | ~1-2s    |
-| 40-bit   | ~1T     | ~10-30s  |
-
-Note: Times assume small test cases with brute force fallback. Full p-adic implementation would be O(log p) for all sizes.
