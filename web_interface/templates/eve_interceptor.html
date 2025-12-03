@@ -346,7 +346,7 @@
 <body>
 
 <div class="header">
-    <div class="title">🕵️ EVE - CRYPTANALYSIS STATION</div>
+    <div class="title">EVE - CRYPTANALYSIS STATION</div>
     <div class="status">
         <div class="status-item">
             <div class="status-dot"></div>
@@ -379,7 +379,7 @@
         </div>
         
         <div class="control-section">
-            <div class="section-title">🎯 Packet Capture</div>
+            <div class="section-title">Packet Capture</div>
             <button onclick="startCapture()">▶ Start Capture</button>
             <button class="secondary" onclick="stopCapture()">⏸ Stop Capture</button>
             <button class="secondary" onclick="clearPackets()">🗑 Clear Packets</button>
@@ -405,7 +405,7 @@
             
             <div style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
                 <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;"><strong>Basic Attacks:</strong></div>
-                <button class="attack" onclick="runAttack('basic', 0)">💥 Full Attack (No Leak)</button>
+                <button class="attack" onclick="runAttack('basic', 0)">Full Attack (No Leak)</button>
                 
                 <div id="leak-section" style="margin-top: 12px;">
                     <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">
@@ -418,7 +418,7 @@
                         <option value="12">12 bits leaked (Cache Timing)</option>
                         <option value="16">16 bits leaked (EM Attack)</option>
                     </select>
-                    <button class="attack" onclick="runAttack('leak', parseInt(document.getElementById('leak-bits').value))">⚡ LSB Leak Attack</button>
+                    <button class="attack" onclick="runAttack('leak', parseInt(document.getElementById('leak-bits').value))">LSB Leak Attack</button>
                 </div>
                 
                 <div id="interval-section" style="margin-top: 12px; display: none;">
@@ -426,7 +426,7 @@
                         <strong>Bounded Interval:</strong>
                         <span style="font-size: 10px; display: block; color: #6b7280;">Works with: BruteForce, BabyStep, Pollard Rho</span>
                     </div>
-                    <button class="attack" onclick="runAttack('interval', 10000)" style="background: #6366f1;">🎯 Search ±5000 Range</button>
+                    <button class="attack" onclick="runAttack('interval', 10000)" style="background: #6366f1;">Search ±5000 Range</button>
                 </div>
                 
                 <div id="gaussian-section" style="margin-top: 12px; display: none;">
@@ -434,7 +434,7 @@
                         <strong>Gaussian Estimation:</strong>
                         <span style="font-size: 10px; display: block; color: #6b7280;">Only for: Las Vegas</span>
                     </div>
-                    <button class="attack" onclick="runAttack('gaussian', 0)" style="background: #8b5cf6;">🎲 Approximate Key Search</button>
+                    <button class="attack" onclick="runAttack('gaussian', 0)" style="background: #8b5cf6;">Approximate Key Search</button>
                 </div>
                 
                 <div id="residue-section" style="margin-top: 12px; display: none;">
@@ -442,20 +442,20 @@
                         <strong>Residue Leakage:</strong>
                         <span style="font-size: 10px; display: block; color: #6b7280;">Only for: Pohlig-Hellman (leaks largest prime factor)</span>
                     </div>
-                    <button class="attack" onclick="runAttack('basic', 0)" style="background: #10b981;">🔓 Residue Leak Attack</button>
+                    <button class="attack" onclick="runAttack('basic', 0)" style="background: #10b981;">Residue Leak Attack</button>
                 </div>
             </div>
         </div>
         
         <div class="control-section">
-            <div class="section-title">📊 Session Info</div>
+            <div class="section-title">Session Info</div>
             <div style="font-size: 11px; line-height: 1.8;">
                 <div><strong>Alice:</strong> <span id="alice-pub">Waiting...</span></div>
                 <div><strong>Bob:</strong> <span id="bob-pub">Waiting...</span></div>
                 <div><strong>Selected:</strong> <span id="selected-packet" style="color: var(--accent);">None</span></div>
                 <div><strong>Status:</strong> <span id="attack-status">Ready</span></div>
                 <div id="private-key-display" style="display: none; margin-top: 10px; padding: 10px; background: var(--bg); border-radius: 4px; border: 1px solid var(--green);">
-                    <strong style="color: var(--green);">🔑 Cracked Keys:</strong><br>
+                    <strong style="color: var(--green);">Cracked Keys:</strong><br>
                     <div id="alice-key-display" style="display: none; margin-top: 6px;">
                         <span style="color: #8b949e;">Alice:</span> <span id="alice-key-value" style="font-family: monospace; color: var(--accent);"></span>
                     </div>
@@ -465,9 +465,9 @@
                 </div>
             </div>
             <div id="decrypt-controls" style="display: none; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
-                <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">🔓 Manual Decryption:</div>
+                <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px;">Manual Decryption:</div>
                 <input type="number" id="private-key-input" placeholder="Enter d value..." style="width: 100%; padding: 8px; margin-bottom: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-family: monospace;">
-                <button class="attack" onclick="decryptWithPrivateKey()" style="background: var(--green);">🔐 Decrypt Selected Packet</button>
+                <button class="attack" onclick="decryptWithPrivateKey()" style="background: var(--green);">Decrypt Selected Packet</button>
             </div>
         </div>
     </div>
@@ -588,14 +588,14 @@
         const privateKeyInput = document.getElementById('private-key-input');
         if (src === 'ALICE' && crackedKeys.alice) {
             privateKeyInput.value = crackedKeys.alice;
-            log('💡 Auto-filled Alice\'s key (to decrypt Alice→Bob messages)', 'info');
+            log('Auto-filled Alice\'s key (to decrypt Alice→Bob messages)', 'info');
         } else if (src === 'BOB' && crackedKeys.bob) {
             privateKeyInput.value = crackedKeys.bob;
-            log('💡 Auto-filled Bob\'s key (to decrypt Bob→Alice messages)', 'info');
+            log('Auto-filled Bob\'s key (to decrypt Bob→Alice messages)', 'info');
         } else if (src === 'ALICE' && !crackedKeys.alice) {
-            log('⚠️ Alice\'s key not yet cracked - need to attack Alice to decrypt this', 'warning');
+            log('Alice\'s key not yet cracked - need to attack Alice to decrypt this', 'warning');
         } else if (src === 'BOB' && !crackedKeys.bob) {
-            log('⚠️ Bob\'s key not yet cracked - need to attack Bob to decrypt this', 'warning');
+            log('Bob\'s key not yet cracked - need to attack Bob to decrypt this', 'warning');
         }
         
         // Show packet details
@@ -637,7 +637,7 @@
             </div>
             <div class="detail-row">
                 <div class="detail-label">Type:</div>
-                <div class="detail-value">${isHandshake ? '<span style="color: var(--green);">🔑 ECDH Handshake (Public Key)</span>' : '<span style="color: var(--red);">🔒 Encrypted Message</span>'}</div>
+                <div class="detail-value">${isHandshake ? '<span style="color: var(--green);">ECDH Handshake (Public Key)</span>' : '<span style="color: var(--red);">🔒 Encrypted Message</span>'}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Decoded:</div>
@@ -809,7 +809,7 @@
         
         const decodedLower = (data.decoded || '').toLowerCase();
         if (decodedLower.includes('pubkey') || decodedLower.includes('pub key')) {
-            badge = '<span class="badge handshake">🔑 HANDSHAKE</span>';
+            badge = '<span class="badge handshake">HANDSHAKE</span>';
             handshakeCount++;
             
             // Extract and display detected curve parameters
@@ -831,7 +831,7 @@
             // Auto-select first handshake if none selected
             if (!selectedPacket) {
                 setTimeout(() => selectPacket(index), 100);
-                log('💡 First handshake packet auto-selected. Click attack button to crack it!', 'info');
+                log('First handshake packet auto-selected. Click attack button to crack it!', 'info');
             }
         } else if (decodedLower.includes('test packet')) {
             badge = '<span class="badge" style="background: #ffa657;">TEST</span>';
@@ -841,7 +841,7 @@
         
         if (canDecrypt && !data.decoded?.includes('PubKey') && !data.decoded?.includes('TEST')) {
             badge = '<span class="badge decrypted">DECRYPTED</span>';
-            dataDisplay = '<span class="decrypted">🔓 Plaintext Recovered</span>';
+            dataDisplay = '<span class="decrypted">Plaintext Recovered</span>';
         }
         
         row.innerHTML = `
@@ -899,13 +899,13 @@
             crackedKeys.alice = data.alice_key;
             document.getElementById('alice-key-value').innerText = 'd_alice = ' + data.alice_key;
             document.getElementById('alice-key-display').style.display = 'block';
-            log('🎉 Alice\'s private key recovered: d_alice = ' + data.alice_key, 'success');
+            log('Alice\'s private key recovered: d_alice = ' + data.alice_key, 'success');
         }
         if (data.bob_key) {
             crackedKeys.bob = data.bob_key;
             document.getElementById('bob-key-value').innerText = 'd_bob = ' + data.bob_key;
             document.getElementById('bob-key-display').style.display = 'block';
-            log('🎉 Bob\'s private key recovered: d_bob = ' + data.bob_key, 'success');
+            log('Bob\'s private key recovered: d_bob = ' + data.bob_key, 'success');
         }
         
         // Show the private key display box
@@ -924,21 +924,21 @@
                 if (badge) {
                     badge.className = 'badge';
                     badge.style.background = 'var(--orange)';
-                    badge.innerText = '🔐 READY';
+                    badge.innerText = 'READY';
                 }
             }
         });
         
-        log('💡 Select an encrypted packet and use the appropriate key to decrypt', 'info');
+        log('Select an encrypted packet and use the appropriate key to decrypt', 'info');
     });
     
     socket.on('decrypted_message', (data) => {
         const sender = data.sender || 'UNKNOWN';
         log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'info');
         log(`[PACKET #${data.packet_index + 1}] Decryption Results:`, 'info');
-        log(`  👤 Sender: ${sender}`, 'info');
-        log(`  📦 Encrypted: ${data.encrypted_hex.substring(0, 64)}...`, 'info');
-        log(`  🔓 Plaintext: "${data.plaintext}"`, 'success');
+        log(`  Sender: ${sender}`, 'info');
+        log(`  Encrypted: ${data.encrypted_hex.substring(0, 64)}...`, 'info');
+        log(`  Plaintext: "${data.plaintext}"`, 'success');
         log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'info');
         
         // Update the specific packet display
@@ -951,7 +951,7 @@
             }
             const dataCell = row.querySelector('div:last-child');
             if (dataCell) {
-                dataCell.innerHTML = `<span class="decrypted">🔓 "${data.plaintext}"</span>`;
+                dataCell.innerHTML = `<span class="decrypted"> "${data.plaintext}"</span>`;
             }
         }
         
