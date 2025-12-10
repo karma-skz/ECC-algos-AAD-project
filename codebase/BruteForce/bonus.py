@@ -31,7 +31,7 @@ for p in lib_paths:
 def fast_mult(k, G, curve):
     if not USE_CPP: return curve.scalar_multiply(k, G)
     rx, ry = ctypes.c_longlong(), ctypes.c_longlong()
-    valid = ecc_lib.scalar_mult(k % curve.p, G[0], G[1], curve.a, curve.b, curve.p, ctypes.byref(rx), ctypes.byref(ry))
+    valid = ecc_lib.scalar_mult(k % curve.p, G[0], G[1], curve.a, curve.b, curve.p, ctypes.byref(rx), ctypes.byref(ry)) #type:ignore
     return (rx.value, ry.value) if valid else None
 
 def solve_lsb(curve, G, Q, n, leak, bits):

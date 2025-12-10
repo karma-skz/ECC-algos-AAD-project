@@ -225,7 +225,7 @@ def generate_test_cases_for_bits(k, num_cases=5):
             print(f"  [Skip] case {case_num}: generator search failed: {e}")
             continue
 
-        d = random.randint(1, q - 1)
+        d = random.randint(1, q - 1) #type:ignore
         Q = curve.scalar_multiply(d, G)
         if Q is None:
             print(f"  [Skip] case {case_num}: Q == O (rare), retry")
@@ -240,7 +240,7 @@ def generate_test_cases_for_bits(k, num_cases=5):
         with open(test_dir / f'answer_{case_num}.txt', 'w') as f:
             f.write(f'{d}\n')
 
-        print(f"  ✓ case {case_num}: p={p} (q bits ~= {q.bit_length()})")
+        print(f"  ✓ case {case_num}: p={p} (q bits ~= {q.bit_length()})") #type:ignore
         created += 1
 
     return created

@@ -257,9 +257,9 @@ def main():
             import subprocess
             subprocess.run(['start', str(report_path)], shell=True)
         elif sys.platform == 'darwin':
-            subprocess.run(['open', str(report_path)])
+            subprocess.run(['open', str(report_path)]) #type:ignore
         else:
-            subprocess.run(['xdg-open', str(report_path)])
+            subprocess.run(['xdg-open', str(report_path)]) #type:ignore
     except:
         pass
 

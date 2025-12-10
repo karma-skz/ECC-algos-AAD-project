@@ -1,5 +1,8 @@
 # ECDLP Solvers
 
+Check ``FINAL_SUBMISSIONS`` folder for project report and final presentation.
+This is the codebase we developed for the same.
+
 Implementations of 5 algorithms for solving the Elliptic Curve Discrete Logarithm Problem.
 
 ## Quick Start
@@ -7,7 +10,9 @@ Implementations of 5 algorithms for solving the Elliptic Curve Discrete Logarith
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-python run_comparisons.py # runs from 10 to 30 bit length
+
+cd codebase
+python run_comparison.py 10 30  # runs from 10 to 30 bit length
 ```
 
 ## Algorithms
@@ -21,14 +26,17 @@ python run_comparisons.py # runs from 10 to 30 bit length
 ## Quick Start
 
 ```bash
+cd codebase
+
 python3 generate_test_cases.py <start_bit> <end_bit>  
 
-python3 algo_name/main_optimized.py <testcase_path> # test specific algo
+python3 algo_name/main_optimized.py <testcase_path>  # test specific algo
 
-python3 run_comparisons.py <start_bit> <end_bit>  # compare all algos
+python3 run_comparison.py <start_bit> <end_bit>  # compare all algos
 # make sure to install matplotlib before this for graphs
 
-python3 demo.py <testcase_path> # demo with user input
+# Optional demo (if present)
+python3 demo.py <testcase_path>  # demo with user input
 ```
 
 ## Input Format
@@ -46,10 +54,18 @@ Output: Secret `d` where Q = d·G
 ## Bonus: Partial Key Leakage
 
 ```bash
+cd codebase
+
 python3 <algoname>/bonus.py <testcase_path>
 
 python3 run_bonus_scenarios.py <testcase_path>
 ```
+
+## Project Structure
+
+- codebase/ – all algorithm implementations, scripts, utilities, test cases, graphs, and web interface.
+- FINAL_SUBMISSIONS/ – final_report.pdf and presentation.pdf (final submitted artifacts only).
+- requirements.txt, README.md – kept at the repository root for environment setup and documentation.
 
 ## NOTE :
 

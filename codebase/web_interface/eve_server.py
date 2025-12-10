@@ -189,13 +189,13 @@ def handle_attack(data):
         return
 
     try:
-        p, a, b, G, n, _ = load_input(case_path)
+        p, a, b, G, n, _ = load_input(case_path) #type:ignore
         interceptor_state["curve_params"] = {'p': p, 'a': a, 'b': b, 'G': G, 'n': n}
         
         # Write Temp Case for the script to read
         temp_case = Path(PROJECT_ROOT) / 'web_interface' / 'eve_temp.txt'
         with open(temp_case, 'w') as f:
-            f.write(f"{p}\n{a} {b}\n{G[0]} {G[1]}\n{n}\n{target_pub_key[0]} {target_pub_key[1]}\n")
+            f.write(f"{p}\n{a} {b}\n{G[0]} {G[1]}\n{n}\n{target_pub_key[0]} {target_pub_key[1]}\n") #type:ignore
 
         # 3. Prepare Command
         scripts = {
@@ -267,7 +267,7 @@ def handle_attack(data):
                         socketio.emit('log', {'text': "[INFO] Attack aborted."})
                         break
                     
-                    char = proc.stdout.read(1)
+                    char = proc.stdout.read(1) #type:ignore
                     if not char and proc.poll() is not None:
                         break
                     if not char: continue
@@ -348,7 +348,7 @@ def handle_decrypt(data):
         
         # Determine which key to use based on sender
         params = interceptor_state["curve_params"]
-        curve = EllipticCurve(params['a'], params['b'], params['p'])
+        curve = EllipticCurve(params['a'], params['b'], params['p']) #type:ignore
         
         if sender == 'ALICE':
             # Alice sent this: decrypt using d_alice × Q_bob
@@ -375,7 +375,7 @@ def handle_decrypt(data):
         emit('log', {'text': f"[INFO] Shared Secret: S = ({shared[0]}, {shared[1]})"})
         
         # Derive AES key
-        aes_key = CryptoManager.derive_key(shared[0])
+        aes_key = CryptoManager.derive_key(shared[0]) #type:ignore
         emit('log', {'text': f"[INFO] AES Key: {aes_key.hex()}"})
         
         # Parse encrypted packet
@@ -391,7 +391,7 @@ def handle_decrypt(data):
         emit('log', {'text': f"[ENCRYPTED] Ciphertext: {ct.hex()[:64]}... ({len(ct)} bytes)"})
         
         # Decrypt
-        plain = CryptoManager.decrypt(aes_key, nonce.hex(), ct.hex())
+        plain = CryptoManager.decrypt(aes_key, nonce.hex(), ct.hex()) #type:ignore
         
         emit('log', {'text': f"[DECRYPTED] ✓ {sender}: \"{plain}\""})
         emit('log', {'text': f"═══════════════════════════════════════════════════"})

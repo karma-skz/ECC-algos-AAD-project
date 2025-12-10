@@ -28,7 +28,7 @@ class CryptoManager:
             }
         except Exception as e:
             print(f"Crypto Error: {e}")
-            return None
+            return None #type:ignore
 
     @staticmethod
     def decrypt(key: bytes, nonce_hex: str, ct_hex: str) -> str:

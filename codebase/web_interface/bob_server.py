@@ -41,7 +41,7 @@ class BobServer:
         
         print(f"[BOB] {self.bits}-bit ECC (Case {self.case})")
         print(f"[BOB] Private key: d = {self.priv}")
-        print(f"[BOB] Public key: Q = ({self.pub[0]}, {self.pub[1]})")
+        print(f"[BOB] Public key: Q = ({self.pub[0]}, {self.pub[1]})")#type:ignore
 
     def notify_eve(self, label, data_hex, decoded):
         try:
@@ -70,16 +70,16 @@ class BobServer:
             ax, ay = map(int, alice_pk_str.split(','))
             
             # 2. Send Bob Pub
-            pk_str = f"{self.pub[0]},{self.pub[1]}".encode()
+            pk_str = f"{self.pub[0]},{self.pub[1]}".encode()#type:ignore
             self.conn.sendall(len(pk_str).to_bytes(4, 'big') + pk_str)
-            self.notify_eve("ECDH", pk_str.hex(), f"PubKey[{self.bits}bit,case{self.case}]: ({self.pub[0]}, {self.pub[1]})")
+            self.notify_eve("ECDH", pk_str.hex(), f"PubKey[{self.bits}bit,case{self.case}]: ({self.pub[0]}, {self.pub[1]})")#type:ignore
             
             # 3. Derive
             S = self.curve.scalar_multiply(self.priv, (ax, ay))
-            self.aes_key = CryptoManager.derive_key(S[0])
+            self.aes_key = CryptoManager.derive_key(S[0])#type:ignore
             print(f"[BOB] Secure Channel Established.")
-            print(f"[BOB DEBUG] Shared Secret: S = ({S[0]}, {S[1]})")
-            print(f"[BOB DEBUG] AES Key: {self.aes_key.hex()}")
+            print(f"[BOB DEBUG] Shared Secret: S = ({S[0]}, {S[1]})")#type:ignore
+            print(f"[BOB DEBUG] AES Key: {self.aes_key.hex()}")#type:ignore
             
             threading.Thread(target=self.rx_loop, daemon=True).start()
             while True:

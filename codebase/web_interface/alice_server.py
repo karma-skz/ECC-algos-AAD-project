@@ -52,7 +52,7 @@ class AliceServer:
         
         print(f"[ALICE] {self.bits}-bit ECC (Case {self.case})")
         print(f"[ALICE] Private key: d = {self.priv}")
-        print(f"[ALICE] Public key: Q = ({self.pub[0]}, {self.pub[1]})")
+        print(f"[ALICE] Public key: Q = ({self.pub[0]}, {self.pub[1]})")#type:ignore
         print(f"[ALICE] Order: n = {n}")
 
     def notify_eve(self, label, data_hex, decoded):
@@ -77,9 +77,9 @@ class AliceServer:
             print(f"[ALICE] Connected to {addr}")
             
             # 1. Send PubKey
-            pk_str = f"{self.pub[0]},{self.pub[1]}".encode()
+            pk_str = f"{self.pub[0]},{self.pub[1]}".encode()#type:ignore
             self.conn.sendall(len(pk_str).to_bytes(4, 'big') + pk_str)
-            self.notify_eve("ECDH", pk_str.hex(), f"PubKey[{self.bits}bit,case{self.case}]: ({self.pub[0]}, {self.pub[1]})")
+            self.notify_eve("ECDH", pk_str.hex(), f"PubKey[{self.bits}bit,case{self.case}]: ({self.pub[0]}, {self.pub[1]})")#type:ignore
             
             
             # 2. Receive PubKey
@@ -89,9 +89,9 @@ class AliceServer:
             
             # 3. Derive Secret
             S = self.curve.scalar_multiply(self.priv, (bx, by))
-            self.aes_key = CryptoManager.derive_key(S[0])
+            self.aes_key = CryptoManager.derive_key(S[0])#type:ignore
             print(f"[ALICE] Secure Channel Established. AES Key Derived.")
-            print(f"[ALICE DEBUG] Shared Secret: S = ({S[0]}, {S[1]})")
+            print(f"[ALICE DEBUG] Shared Secret: S = ({S[0]}, {S[1]})")#type:ignore
             print(f"[ALICE DEBUG] AES Key: {self.aes_key.hex()}")
             
             # 4. Chat Loop
@@ -128,13 +128,13 @@ class AliceServer:
     def rx_loop(self):
         try:
             while True:
-                nl = int.from_bytes(self.conn.recv(4), 'big')
+                nl = int.from_bytes(self.conn.recv(4), 'big')#type:ignore
                 if nl == 0: break
-                n = self.conn.recv(nl).hex()
-                cl = int.from_bytes(self.conn.recv(4), 'big')
-                c = self.conn.recv(cl).hex()
+                n = self.conn.recv(nl).hex()#type:ignore
+                cl = int.from_bytes(self.conn.recv(4), 'big')#type:ignore
+                c = self.conn.recv(cl).hex()#type:ignore
                 
-                txt = CryptoManager.decrypt(self.aes_key, n, c)
+                txt = CryptoManager.decrypt(self.aes_key, n, c) #type:ignore
                 print(f"\r[Bob]: {txt}\nAlice> ", end="")
         except Exception as e:
             print(f"\n[ALICE RX] Connection closed: {e}")

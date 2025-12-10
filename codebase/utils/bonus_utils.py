@@ -219,7 +219,7 @@ def calculate_search_reduction(original_space: int, reduced_space: int) -> Tuple
     return reduction, f"{percentage:.2f}%"
 
 
-def print_bonus_result(algo: str, status: str, time_taken: float, steps: int, details: dict = None):
+def print_bonus_result(algo: str, status: str, time_taken: float, steps: int, details: dict = None): #type:ignore
     """
     Print a standardized JSON result line for the runner to parse.
     """

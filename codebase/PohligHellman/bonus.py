@@ -24,7 +24,7 @@ def fast_mult(k, G, curve):
     if not USE_CPP: return curve.scalar_multiply(k, G)
     rx, ry = ctypes.c_longlong(), ctypes.c_longlong()
     # FIX: No % p
-    valid = ecc_lib.scalar_mult(k, G[0], G[1], curve.a, curve.b, curve.p, ctypes.byref(rx), ctypes.byref(ry))
+    valid = ecc_lib.scalar_mult(k, G[0], G[1], curve.a, curve.b, curve.p, ctypes.byref(rx), ctypes.byref(ry)) #type:ignore
     return (rx.value, ry.value) if valid else None
 
 def trial_factor(n):

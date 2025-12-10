@@ -12,3 +12,5 @@ vevn/
 *.DS_Store
 oldtc/
 test_cases000
+!final_report.pdf
+!presentation.pdf

@@ -22,7 +22,7 @@ ALGORITHMS = ['BruteForce', 'BabyStep', 'PohligHellman', 'PollardRho', 'LasVegas
 # Try to import matplotlib
 try:
     import matplotlib.pyplot as plt
-    import matplotlib
+    import matplotlib 
     matplotlib.use('Agg')
     HAS_MATPLOTLIB = True
 except Exception:
@@ -138,7 +138,7 @@ def generate_plots(plot_data, bit_start, bit_end):
     }
 
     # GRAPH 1: Comparison Linear + Log
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6)) #type:ignore
     max_time = 0
     for algo in ALGORITHMS:
         bits = plot_data[algo]['bits']
@@ -152,15 +152,15 @@ def generate_plots(plot_data, bit_start, bit_end):
         ax1.set_ylim(0, 10)
         ax1.text(0.02, 0.98, 'Clipped at 10s', transform=ax1.transAxes, bbox=dict(facecolor='yellow', alpha=0.5), va='top')
     ax2.set_xlabel('Bit Length'); ax2.set_ylabel('Time (s)'); ax2.set_title('Log Scale'); ax2.set_yscale('log'); ax2.legend(); ax2.grid(True, which="both", alpha=0.2)
-    plt.tight_layout()
-    plt.savefig(output_dir / f'comparison_{bit_start}_{bit_end}bit.png')
-    plt.close()
+    plt.tight_layout() #type:ignore
+    plt.savefig(output_dir / f'comparison_{bit_start}_{bit_end}bit.png') #type:ignore
+    plt.close() #type:ignore
 
     # GRAPH 2: Individual algorithms grid
     num_algos = len(ALGORITHMS)
     cols = 3
     rows = (num_algos + cols - 1) // cols
-    fig, axes = plt.subplots(rows, cols, figsize=(15, 5 * rows))
+    fig, axes = plt.subplots(rows, cols, figsize=(15, 5 * rows)) #type:ignore
     axes = axes.flatten()
     for idx, algo in enumerate(ALGORITHMS):
         ax = axes[idx]
@@ -175,9 +175,9 @@ def generate_plots(plot_data, bit_start, bit_end):
             ax.set_title(algo)
     for i in range(len(ALGORITHMS), len(axes)):
         axes[i].axis('off')
-    plt.tight_layout()
-    plt.savefig(output_dir / f'individual_{bit_start}_{bit_end}bit.png')
-    plt.close()
+    plt.tight_layout() #type:ignore
+    plt.savefig(output_dir / f'individual_{bit_start}_{bit_end}bit.png') #type:ignore
+    plt.close() #type:ignore
 
 def generate_case_plots(plot_data, bit_start, bit_end):
     """For each algorithm, produce a figure with Linear and Log subplots showing per-case curves."""
@@ -206,7 +206,7 @@ def generate_case_plots(plot_data, bit_start, bit_end):
             case_series.append(series)
 
         # Plot
-        fig, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(16, 6))
+        fig, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(16, 6)) #type:ignore
         for idx, series in enumerate(case_series):
             ax_lin.plot(bits, series, marker='o', label=f'Case {idx+1}')
         ax_lin.set_title(f"{algo} — Linear Scale"); ax_lin.set_xlabel("Bit Length"); ax_lin.set_ylabel("Time (s)"); ax_lin.grid(True, alpha=0.3); ax_lin.legend()
@@ -215,9 +215,9 @@ def generate_case_plots(plot_data, bit_start, bit_end):
             ax_log.plot(bits, series, marker='o', label=f'Case {idx+1}')
         ax_log.set_title(f"{algo} — Log Scale"); ax_log.set_xlabel("Bit Length"); ax_log.set_yscale("log"); ax_log.grid(True, which="both", alpha=0.3); ax_log.legend()
 
-        plt.tight_layout()
-        plt.savefig(output_dir / f'{algo}_cases_{bit_start}_{bit_end}bit.png')
-        plt.close()
+        plt.tight_layout() #type:ignore
+        plt.savefig(output_dir / f'{algo}_cases_{bit_start}_{bit_end}bit.png') #type:ignore
+        plt.close() #type:ignore
 
 
 def generate_casewise_all_algos_plots(plot_data, bit_start, bit_end):
@@ -242,7 +242,7 @@ def generate_casewise_all_algos_plots(plot_data, bit_start, bit_end):
 
     # For each case index generate a single plot with all algorithms
     for case_idx in range(max_cases):
-        fig, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(16, 6))
+        fig, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(16, 6)) #type:ignore
 
         for algo in ALGORITHMS:
             bits = sorted(plot_data[algo]['cases'].keys())
@@ -273,9 +273,9 @@ def generate_casewise_all_algos_plots(plot_data, bit_start, bit_end):
         ax_log.grid(True, which="both", alpha=0.3)
         ax_log.legend()
 
-        plt.tight_layout()
-        plt.savefig(output_dir / f'case_{case_idx+1}_algo_{bit_start}_{bit_end}bit.png')
-        plt.close()
+        plt.tight_layout() #type:ignore
+        plt.savefig(output_dir / f'case_{case_idx+1}_algo_{bit_start}_{bit_end}bit.png') #type:ignore
+        plt.close() #type:ignore
 
 # -------------------------
 # Main driver
